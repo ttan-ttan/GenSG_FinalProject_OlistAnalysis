@@ -2,3 +2,5 @@ pyspark
 pytest
 python-dotenv
 pandas
+msal
+requests
