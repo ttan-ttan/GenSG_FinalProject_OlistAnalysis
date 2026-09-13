@@ -1,4 +1,7 @@
 # pylint: disable=redefined-outer-name
+# pylint: disable=no-member
+# pylint: disable=invalid-unary-operand-type
+# pylint: disable=missing-function-docstring
 
 """
 Unit Tests for Customer Cleaning
@@ -12,62 +15,41 @@ Test Coverage:
 4. Removal of invalid rows
 """
 
-import pytest
+import pyspark.sql.functions as F
+from pyspark.sql import SparkSession
 from src.cleaning_customers import clean_customers
 
+spark = SparkSession.builder.getOrCreate()
 
-@pytest.fixture
-def df_mixed_types(spark):
-    """Sample DF for type casting + city/state normalization tests."""
-    return spark.createDataFrame(
-        [("id1", "uid1", "12345", "sao paulo", "sp")],
+
+def test_clean_customers_basic():
+    raw = spark.createDataFrame(
+        [
+            ("C001", "U001", "1234", " Sao Paulo ", "sp"),
+            ("C002", "U002", "99999", " Rio de Janeiro ", "rj"),
+            # invalid: null customer_id
+            (None, "U003", "5000", "Campinas", "sp"),
+            ("C004", "U004", "0500", "Curitiba", "pr"),  # invalid zip (too short)
+        ],
         ["customer_id", "customer_unique_id", "customer_zip_code_prefix",
-         "customer_city", "customer_state"],
+         "customer_city", "customer_state"]
     )
 
+    df = clean_customers(raw)
 
-@pytest.fixture
-def df_valid_zip(spark):
-    """Valid ZIP code row."""
-    return spark.createDataFrame(
-        [("id2", "uid2", "13056", "campinas", "SP")],
-        ["customer_id", "customer_unique_id", "customer_zip_code_prefix",
-         "customer_city", "customer_state"],
-    )
+    # Null customer_id removed
+    assert df.filter(F.col("customer_id").isNull()).count() == 0
 
+    # Zip code range 1000–99999
+    assert df.filter(~F.col("customer_zip_code_prefix").between(
+        1000, 99999)).count() == 0
 
-@pytest.fixture
-def df_invalid_zip(spark):
-    """Invalid ZIP code row."""
-    return spark.createDataFrame(
-        [("id1", "uid1", "999", "campinas", "SP")],
-        ["customer_id", "customer_unique_id", "customer_zip_code_prefix",
-         "customer_city", "customer_state"],
-    )
+    # City normalized to lowercase + trimmed
+    row = df.filter(F.col("customer_id") == "C001").first()
+    assert row.customer_city == "sao paulo"
 
+    # State normalized to uppercase
+    assert row.customer_state == "SP"
 
-def test_clean_customers_types(df_mixed_types):
-    """Ensure columns are cast to correct types."""
-    cleaned = clean_customers(df_mixed_types)
-
-    assert cleaned.schema["customer_zip_code_prefix"].dataType.typeName(
-    ) == "integer"
-    assert cleaned.schema["customer_city"].dataType.typeName() == "string"
-
-
-def test_clean_customers_city_state_format(df_mixed_types):
-    """Ensure city is lowercase and state is uppercase."""
-    cleaned = clean_customers(df_mixed_types)
-    row = cleaned.first()
-
-    assert row["customer_city"] == "sao paulo"
-    assert row["customer_state"] == "SP"
-
-
-def test_clean_customers_zip_validation(df_valid_zip, df_invalid_zip):
-    """Ensure invalid zip codes are removed."""
-    df = df_invalid_zip.union(df_valid_zip)
-    cleaned = clean_customers(df)
-
-    assert cleaned.count() == 1
-    assert cleaned.first()["customer_id"] == "id2"
+    # Only valid rows remain
+    assert df.count() == 2

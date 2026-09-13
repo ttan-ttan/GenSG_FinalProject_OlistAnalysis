@@ -1,4 +1,5 @@
-"""Trigger Microsoft Fabric pipeline via REST API."""
+# call by the deploy.yml to trigger the pipeline in fabric to
+# execute bronze --> silver --> gold. Start ETL automatically.
 
 import os
 import msal
@@ -19,17 +20,23 @@ app = msal.ConfidentialClientApplication(
     client_credential=CLIENT_SECRET,
 )
 
-result = app.acquire_token_for_client(scopes=SCOPE)
-if "access_token" not in result:
-    raise RuntimeError("Failed to acquire token")
+token = app.acquire_token_for_client(scopes=SCOPE)
+if "access_token" not in token:
+    raise RuntimeError("Failed to acquire Fabric token")
 
-access_token = result["access_token"]
-URL = f"https://api.fabric.microsoft.com/v1/workspaces/{WORKSPACE_ID}/pipelines/{PIPELINE_ID}/run"
+access_token = token["access_token"]
 
-headers = {"Authorization": f"Bearer {access_token}",
-           "Content-Type": "application/json"}
-resp = requests.post(URL, headers=headers, timeout=30)
+url = (
+    f"https://api.fabric.microsoft.com/v1/workspaces/"
+    f"{WORKSPACE_ID}/pipelines/{PIPELINE_ID}/run"
+)
 
+headers = {
+    "Authorization": f"Bearer {access_token}",
+    "Content-Type": "application/json"
+}
+
+resp = requests.post(url, headers=headers, timeout=30)
 print("Status:", resp.status_code)
 print("Response:", resp.text)
 resp.raise_for_status()

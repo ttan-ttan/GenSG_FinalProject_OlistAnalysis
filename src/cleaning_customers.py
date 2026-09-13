@@ -1,12 +1,11 @@
 """
 Customer dataset cleaning module - prepare raw Bronze data for Silver layer validation.
-
-Cleaning steps:
-    1. Type casting
-    2. City/state normalization
-    3. Zip code validation
-    4. Null removal
-    5. Basic formatting cleanup
+    Cleaning steps:
+        1. Type casting
+        2. City/state normalization
+        3. Zip code validation
+        4. Null removal
+        5. Basic formatting cleanup
 """
 
 import pyspark.sql.functions as F
@@ -18,14 +17,13 @@ def clean_customers(df: DataFrame) -> DataFrame:
     """
     Clean the customers dataset loaded from Bronze (data/raw/customers.csv),
     return as cleaned dataframe for validation.
-
-    Rules applied:
-        - cast all columns to correct types
-        - trim whitespace and normalize text fields
-        - convert city names to lowercase
-        - convert state codes to uppercase
-        - ensure zip code prefix is a valid 4–5 digit number
-        - drop rows with null customer_id
+        Rules applied:
+            - cast all columns to correct types
+            - trim whitespace and normalize text fields
+            - convert city names to lowercase
+            - convert state codes to uppercase
+            - ensure zip code prefix is a valid 4 to 5 digit number
+            - drop rows with null customer_id
     """
 
     df_clean = (

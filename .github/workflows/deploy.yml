@@ -1,0 +1,69 @@
+# after we push this workflow run immediately, it does :
+#         Checkout repo --> install python dependencies --> Run pytest 
+#         deploy notebooks to fabric workspace --> trigger fabric pipeline  
+#          ( using the two scripts in .github/scripts/ folder )
+
+name: Deploy to Microsoft Fabric
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      TENANT_ID: ${{ secrets.TENANT_ID }}
+      CLIENT_ID: ${{ secrets.CLIENT_ID }}
+      CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+      FABRIC_WORKSPACE_ID: ${{ secrets.FABRIC_WORKSPACE_ID }}
+      FABRIC_PIPELINE_ID: ${{ secrets.FABRIC_PIPELINE_ID }}
+
+      NB_BRONZE_CUSTOMERS: ${{ secrets.FABRIC_NOTEBOOK_BRONZE_CUSTOMERS }}
+      NB_SILVER_CUSTOMERS: ${{ secrets.FABRIC_NOTEBOOK_SILVER_CUSTOMERS }}
+      NB_GOLD_CUSTOMERS: ${{ secrets.FABRIC_NOTEBOOK_GOLD_CUSTOMERS }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install msal requests pytest
+
+      - name: Run unit tests
+        run: |
+          pytest -q
+
+      - name: Deploy Bronze Customers Notebook
+        run: |
+          python .github/scripts/deploy_notebook.py \
+            --workspace $FABRIC_WORKSPACE_ID \
+            --notebook $NB_BRONZE_CUSTOMERS \
+            --file notebooks/Bronze_Customers.notebook/notebook-content.json
+
+      - name: Deploy Silver Customers Notebook
+        run: |
+          python .github/scripts/deploy_notebook.py \
+            --workspace $FABRIC_WORKSPACE_ID \
+            --notebook $NB_SILVER_CUSTOMERS \
+            --file notebooks/Silver_Customers.notebook/notebook-content.json
+
+      - name: Deploy Gold Customers Notebook
+        run: |
+          python .github/scripts/deploy_notebook.py \
+            --workspace $FABRIC_WORKSPACE_ID \
+            --notebook $NB_GOLD_CUSTOMERS \
+            --file notebooks/Gold_Customers.notebook/notebook-content.json
+
+      - name: Trigger Fabric Pipeline
+        run: |
+          python .github/scripts/trigger_pipeline.py
