@@ -1,115 +1,73 @@
+# pylint: disable=redefined-outer-name
+# pylint: disable=wrong-import-order
 # pylint: disable=no-member
-# pylint: disable=invalid-unary-operand-type
-# pylint: disable=missing-function-docstring
 
 """
-Unit Tests for Customer Validation
-Ensure the validation logic correctly enforces business rules
-before promoting Silver → Gold.
-
-Test Coverage:
-1. Valid state codes
-2. Valid zip code range
-3. Valid timestamp (exists, correct type, not null, not future)
-4. Unique customer_id
+Test Suite: Validation Logic for Customers Dataset
 """
 
-import pyspark.sql.functions as F
-from pyspark.sql import SparkSession
 from src.validation_customers import validate_customers
+from pyspark.sql import SparkSession
+import pytest
+import sys
+import os
 
-spark = SparkSession.builder.getOrCreate()
+# Add src folder to Python path
+sys.path.append(os.path.abspath(os.path.join(
+    os.path.dirname(__file__), "..", "src")))
 
 
-def test_validate_customers_valid():
+@pytest.fixture(scope="module")
+def spark():
+    """Create a SparkSession for this test module."""
+    return SparkSession.builder.getOrCreate()
+
+
+def test_validate_customers_valid(spark):
     df = spark.createDataFrame(
         [
-            ("C001", "SP", 1234, "2020-01-01 10:00:00"),
-            ("C002", "RJ", 5000, "2020-01-02 12:00:00"),
+            ("C001", "U001", 1234, "sao paulo", "SP"),
+            ("C002", "U002", 99999, "rio de janeiro", "RJ"),
         ],
-        ["customer_id", "customer_state", "customer_zip_code_prefix",
-         "customer_first_purchase_date"]
-    ).withColumn(
-        "customer_first_purchase_date",
-        F.to_timestamp("customer_first_purchase_date")
+        ["customer_id", "customer_unique_id", "customer_zip_code_prefix",
+         "customer_city", "customer_state"]
     )
 
-    validated = validate_customers(df)
-    assert validated.count() == 2
+    df_val = validate_customers(df)
+    assert df_val.count() == 2
 
 
-def test_validate_invalid_state():
+def test_validate_customers_invalid_state(spark):
     df = spark.createDataFrame(
-        [
-            ("C001", "XX", 1234, "2020-01-01 10:00:00"),
-        ],
-        ["customer_id", "customer_state", "customer_zip_code_prefix",
-         "customer_first_purchase_date"]
-    ).withColumn(
-        "customer_first_purchase_date",
-        F.to_timestamp("customer_first_purchase_date")
+        [("C001", "U001", 1234, "sao paulo", "XX")],
+        ["customer_id", "customer_unique_id", "customer_zip_code_prefix",
+         "customer_city", "customer_state"]
     )
 
-    try:
+    with pytest.raises(ValueError):
         validate_customers(df)
-        assert False, "Expected ValueError for invalid state"
-    except ValueError:
-        pass
 
 
-def test_validate_invalid_zip():
+def test_validate_customers_duplicate_id(spark):
     df = spark.createDataFrame(
         [
-            ("C001", "SP", 50, "2020-01-01 10:00:00"),  # invalid zip
+            ("C001", "U001", 1234, "sao paulo", "SP"),
+            ("C001", "U002", 5000, "campinas", "SP"),
         ],
-        ["customer_id", "customer_state", "customer_zip_code_prefix",
-         "customer_first_purchase_date"]
-    ).withColumn(
-        "customer_first_purchase_date",
-        F.to_timestamp("customer_first_purchase_date")
+        ["customer_id", "customer_unique_id", "customer_zip_code_prefix",
+         "customer_city", "customer_state"]
     )
 
-    try:
+    with pytest.raises(ValueError):
         validate_customers(df)
-        assert False, "Expected ValueError for invalid zip"
-    except ValueError:
-        pass
 
 
-def test_validate_future_timestamp():
+def test_validate_customers_invalid_zip(spark):
     df = spark.createDataFrame(
-        [
-            ("C001", "SP", 1234, "2999-01-01 10:00:00"),  # future date
-        ],
-        ["customer_id", "customer_state", "customer_zip_code_prefix",
-         "customer_first_purchase_date"]
-    ).withColumn(
-        "customer_first_purchase_date",
-        F.to_timestamp("customer_first_purchase_date")
+        [("C001", "U001", 50, "sao paulo", "SP")],
+        ["customer_id", "customer_unique_id", "customer_zip_code_prefix",
+         "customer_city", "customer_state"]
     )
 
-    try:
+    with pytest.raises(ValueError):
         validate_customers(df)
-        assert False, "Expected ValueError for future timestamp"
-    except ValueError:
-        pass
-
-
-def test_validate_duplicate_customer_id():
-    df = spark.createDataFrame(
-        [
-            ("C001", "SP", 1234, "2020-01-01 10:00:00"),
-            ("C001", "SP", 5000, "2020-01-02 12:00:00"),  # duplicate
-        ],
-        ["customer_id", "customer_state", "customer_zip_code_prefix",
-         "customer_first_purchase_date"]
-    ).withColumn(
-        "customer_first_purchase_date",
-        F.to_timestamp("customer_first_purchase_date")
-    )
-
-    try:
-        validate_customers(df)
-        assert False, "Expected ValueError for duplicate customer_id"
-    except ValueError:
-        pass

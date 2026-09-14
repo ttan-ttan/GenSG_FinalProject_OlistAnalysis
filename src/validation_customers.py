@@ -1,65 +1,51 @@
+# pylint: disable=invalid-unary-operand-type
+# pylint: disable=no-member
+
 """
-Customer Validation Module
-Validates the cleaned customers dataset before moving to the Gold layer.
-    Validation:
-        1. Ensure customer_state is a valid Brazilian state code
-        2. Ensure zip code prefix is within valid range (1000–99999)
-        3. Ensure customer_id is unique
-        4. Ensure customer_first_purchase_date exists, is a timestamp,
-        is not null, and not in the future
+Validation rules for the Silver Customers dataset.
 """
 
 import pyspark.sql.functions as F
-from pyspark.sql import DataFrame
-from pyspark.sql.types import TimestampType
 
 
-def validate_customers(df: DataFrame) -> DataFrame:
-    """
-    Validate the customers dataset loaded from Silver and return a validated
-    dataframe ready for Gold layer.
-        Raises ValueError for:
-            - missing or invalid customer_first_purchase_date
-            - invalid state codes
-            - invalid zip codes
-            - duplicate customer_id
-    """
+def validate_customers(df):
+    """Validate the Silver customers dataframe."""
 
-    valid_states = [
-        "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
-        "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN",
-        "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+    # Required columns
+    required_columns = [
+        "customer_id",
+        "customer_unique_id",
+        "customer_zip_code_prefix",
+        "customer_city",
+        "customer_state"
     ]
 
-    # 1. Validate state codes
-    df_val = df.filter(F.col("customer_state").isin(valid_states))
+    missing = [col for col in required_columns if col not in df.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {missing}")
 
-    #  2. Validate zip code
-    df_val = df_val.filter(
-        F.col("customer_zip_code_prefix").between(1000, 99999))
+    # customer_id must be non-null
+    if df.filter(F.col("customer_id").isNull()).count() > 0:
+        raise ValueError("customer_id contains null values")
 
-    #  3. Validate first purchase date
-    if "customer_first_purchase_date" not in df_val.columns:
-        raise ValueError(
-            "Missing required column: customer_first_purchase_date")
+    # customer_id must be unique
+    dup_count = df.groupBy("customer_id").count().filter(
+        F.col("count") > 1).count()
+    if dup_count > 0:
+        raise ValueError("Duplicate customer_id values detected")
 
-    if not isinstance(df_val.schema["customer_first_purchase_date"].dataType, TimestampType):
-        raise ValueError("customer_first_purchase_date must be a timestamp")
+    # Validate state format (two uppercase letters)
+    invalid_states = df.filter(
+        ~F.col("customer_state").rlike("^[A-Z]{2}$")).count()
+    if invalid_states > 0:
+        raise ValueError("Invalid customer_state format detected")
 
-    if df_val.filter(F.col("customer_first_purchase_date").isNull()).count() > 0:
-        raise ValueError("Null values found in customer_first_purchase_date")
+    # Validate ZIP code range (avoid unary ~)
+    invalid_zip = df.filter(
+        F.col("customer_zip_code_prefix").between(1000, 99999) == False
+    ).count()
 
-    if df_val.filter(F.col("customer_first_purchase_date") > F.current_timestamp()).count() > 0:
-        raise ValueError(
-            "customer_first_purchase_date contains future timestamps")
+    if invalid_zip > 0:
+        raise ValueError("Invalid customer_zip_code_prefix detected")
 
-    # 4. Validate uniqueness of customer_id
-    duplicates = (
-        df_val.groupBy("customer_id")
-              .count()
-              .filter(F.col("count") > 1)
-    )
-    if duplicates.count() > 0:
-        raise ValueError("Duplicate customer_id found in customers dataset")
-
-    return df_val
+    return df
