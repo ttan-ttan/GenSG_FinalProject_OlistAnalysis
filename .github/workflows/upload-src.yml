@@ -1,0 +1,24 @@
+name: Upload src to OneLake
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Upload src folder to OneLake
+        env:
+          FABRIC_WORKSPACE_ID: ${{ secrets.FABRIC_WORKSPACE_ID }}
+          FABRIC_LAKEHOUSE_ID: ${{ secrets.FABRIC_LAKEHOUSE_ID }}
+          FABRIC_ACCESS_TOKEN: ${{ secrets.FABRIC_ACCESS_TOKEN }}
+        run: python scripts/upload_src_folder.py

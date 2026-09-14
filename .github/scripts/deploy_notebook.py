@@ -1,64 +1,48 @@
-# After deploy.yml run, it will call this script first to Authenticate with fabric
-# And deploy notebooks Bronze Silver Gold to Fabric.
+"""
+Deploy a Fabric notebook to OneLake using the Fabric REST API.
+This script is executed by GitHub Actions to update notebooks automatically.
+"""
 
-import argparse
-import base64
-import msal
-import requests
 import os
+import requests
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--workspace", required=True)
-parser.add_argument("--notebook", required=True)
-parser.add_argument("--file", required=True)
-args = parser.parse_args()
+FABRIC_WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
+FABRIC_LAKEHOUSE_ID = os.getenv("FABRIC_LAKEHOUSE_ID")
+FABRIC_ACCESS_TOKEN = os.getenv("FABRIC_ACCESS_TOKEN")
 
-tenant_id = os.environ["TENANT_ID"]
-client_id = os.environ["CLIENT_ID"]
-client_secret = os.environ["CLIENT_SECRET"]
+# Example constants (rename to uppercase for Pylint)
+AUTHORITY = "api.fabric.microsoft.com"
+BASE_URL = f"https://{AUTHORITY}/v1/workspaces/{FABRIC_WORKSPACE_ID}"
 
-authority = f"https://login.microsoftonline.com/{tenant_id}"
-app = msal.ConfidentialClientApplication(
-    client_id=client_id,
-    authority=authority,
-    client_credential=client_secret,
-)
-
-token = app.acquire_token_for_client(
-    scopes=["https://api.fabric.microsoft.com/.default"]
-)
-if "access_token" not in token:
-    raise RuntimeError("Failed to acquire Fabric token")
-
-access_token = token["access_token"]
-
-with open(args.file, "rb") as f:
-    encoded = base64.b64encode(f.read()).decode("ascii")
-
-payload = {
-    "definition": {
-        "format": "ipynb",
-        "parts": [
-            {
-                "path": os.path.basename(args.file),
-                "payload": encoded,
-                "payloadType": "InlineBase64"
-            }
-        ]
-    }
-}
-
-url = (
-    f"https://api.fabric.microsoft.com/v1/workspaces/"
-    f"{args.workspace}/notebooks/{args.notebook}/updateDefinition"
-)
-
-headers = {
-    "Authorization": f"Bearer {access_token}",
+HEADERS = {
+    "Authorization": f"Bearer {FABRIC_ACCESS_TOKEN}",
     "Content-Type": "application/json"
 }
 
-resp = requests.post(url, headers=headers, json=payload, timeout=60)
-print("Status:", resp.status_code)
-print("Response:", resp.text)
-resp.raise_for_status()
+
+def deploy_notebook(notebook_path: str, notebook_name: str):
+    """
+    Upload a notebook file to Fabric Lakehouse Files/notebooks.
+    """
+
+    # Build upload URL
+    url = (
+        f"{BASE_URL}/lakehouses/"
+        f"{FABRIC_LAKEHOUSE_ID}/files/notebooks/{notebook_name}?overwrite=true"
+    )
+
+    with open(notebook_path, "rb") as f:
+        response = requests.put(
+            url,
+            headers=HEADERS,
+            data=f,
+            timeout=30  # prevent hanging forever
+        )
+
+    print(f"Uploaded notebook {notebook_name}: {response.status_code}")
+    print(response.text)
+
+
+if __name__ == "__main__":
+    # Example usage
+    deploy_notebook("notebooks/gold_customers.ipynb", "gold_customers.ipynb")
