@@ -21,4 +21,4 @@ jobs:
           FABRIC_WORKSPACE_ID: ${{ secrets.FABRIC_WORKSPACE_ID }}
           FABRIC_LAKEHOUSE_ID: ${{ secrets.FABRIC_LAKEHOUSE_ID }}
           FABRIC_ACCESS_TOKEN: ${{ secrets.FABRIC_ACCESS_TOKEN }}
-        run: python scripts/upload_src_folder.py
+        run: python .github/scripts/upload_src_folder.py
