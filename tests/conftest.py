@@ -1,8 +1,6 @@
 # pylint: disable=no-member
 
 """
-conftest.py
-
 Purpose:
     Shared pytest fixtures for the entire test suite.
     Pytest automatically loads this file — no import required.
@@ -20,4 +18,4 @@ from pyspark.sql import SparkSession
 @pytest.fixture(scope="session")
 def spark():
     """Create a SparkSession for all tests."""
-    return
+    return SparkSession.builder.getOrCreate()
