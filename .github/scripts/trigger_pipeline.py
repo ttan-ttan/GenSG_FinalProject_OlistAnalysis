@@ -1,5 +1,6 @@
-# call by the deploy.yml to trigger the pipeline in fabric to
-# execute bronze --> silver --> gold. Start ETL automatically.
+"""
+Trigger a Fabric pipeline using REST API.
+"""
 
 import os
 import msal

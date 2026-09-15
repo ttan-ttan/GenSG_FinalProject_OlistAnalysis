@@ -16,9 +16,16 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
+      - name: Acquire Fabric Access Token
+        id: get_token
+        run: |
+          response=$(curl -X POST -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "grant_type=client_credentials&client_id=${{ secrets.CLIENT_ID }}&client_secret=${{ secrets.CLIENT_SECRET }}&scope=https://api.fabric.microsoft.com/.default" \
+            "https://login.microsoftonline.com/${{ secrets.TENANT_ID }}/oauth2/v2.0/token")
+          echo "FABRIC_ACCESS_TOKEN=$(echo $response | jq -r '.access_token')" >> $GITHUB_ENV
+
       - name: Upload src folder to OneLake
         env:
           FABRIC_WORKSPACE_ID: ${{ secrets.FABRIC_WORKSPACE_ID }}
           FABRIC_LAKEHOUSE_ID: ${{ secrets.FABRIC_LAKEHOUSE_ID }}
-          FABRIC_ACCESS_TOKEN: ${{ secrets.FABRIC_ACCESS_TOKEN }}
         run: python .github/scripts/upload_src_folder.py

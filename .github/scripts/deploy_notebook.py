@@ -10,7 +10,6 @@ FABRIC_WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
 FABRIC_LAKEHOUSE_ID = os.getenv("FABRIC_LAKEHOUSE_ID")
 FABRIC_ACCESS_TOKEN = os.getenv("FABRIC_ACCESS_TOKEN")
 
-# Example constants (rename to uppercase for Pylint)
 AUTHORITY = "api.fabric.microsoft.com"
 BASE_URL = f"https://{AUTHORITY}/v1/workspaces/{FABRIC_WORKSPACE_ID}"
 
@@ -25,7 +24,6 @@ def deploy_notebook(notebook_path: str, notebook_name: str):
     Upload a notebook file to Fabric Lakehouse Files/notebooks.
     """
 
-    # Build upload URL
     url = (
         f"{BASE_URL}/lakehouses/"
         f"{FABRIC_LAKEHOUSE_ID}/files/notebooks/{notebook_name}?overwrite=true"
@@ -36,7 +34,7 @@ def deploy_notebook(notebook_path: str, notebook_name: str):
             url,
             headers=HEADERS,
             data=f,
-            timeout=30  # prevent hanging forever
+            timeout=30
         )
 
     print(f"Uploaded notebook {notebook_name}: {response.status_code}")
@@ -44,5 +42,4 @@ def deploy_notebook(notebook_path: str, notebook_name: str):
 
 
 if __name__ == "__main__":
-    # Example usage
     deploy_notebook("notebooks/gold_customers.ipynb", "gold_customers.ipynb")

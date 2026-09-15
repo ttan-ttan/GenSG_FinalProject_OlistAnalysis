@@ -1,8 +1,4 @@
-#  Only run when manually trigger to run workflow manually from githun actions
-# it re-run pipeline without deploying notebooks, for testing pipeline only. 
-# useful if want to refresh gold table without code changes
-
-name: Run Fabric Pipeline
+name: Manually Trigger Fabric Pipeline
 
 on:
   workflow_dispatch:
