@@ -4,9 +4,9 @@ This script is executed by GitHub Actions to update notebooks automatically.
 """
 
 import os
+import sys
 import requests
 
-# Environment variables from GitHub Actions
 FABRIC_WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
 FABRIC_LAKEHOUSE_ID = os.getenv("FABRIC_LAKEHOUSE_ID")
 FABRIC_ACCESS_TOKEN = os.getenv("FABRIC_ACCESS_TOKEN")
@@ -48,20 +48,11 @@ def deploy_notebook(notebook_path: str, notebook_name: str):
 
 
 if __name__ == "__main__":
-    # Bronze
-    deploy_notebook(
-        "notebooks/Bronze_Customers.notebook/notebook-content.json",
-        "Bronze_Customers.notebook"
-    )
+    if len(sys.argv) != 3:
+        raise ValueError(
+            "Usage: deploy_notebook.py <notebook_path> <notebook_name>")
 
-    # Silver
-    deploy_notebook(
-        "notebooks/Silver_Customers.notebook/notebook-content.json",
-        "Silver_Customers.notebook"
-    )
+    notebook_path = sys.argv[1]
+    notebook_name = sys.argv[2]
 
-    # Gold
-    deploy_notebook(
-        "notebooks/Gold_Customers.notebook/notebook-content.json",
-        "Gold_Customers.notebook"
-    )
+    deploy_notebook(notebook_path, notebook_name)
