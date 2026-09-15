@@ -2,50 +2,56 @@
 # pylint: disable=no-member
 
 """
-Validation rules for the Silver Customers dataset.
+Validation logic for the customers dataset.
 """
 
+from pyspark.sql import DataFrame
 import pyspark.sql.functions as F
 
 
-def validate_customers(df):
-    """Validate the Silver customers dataframe."""
+VALID_STATES = {
+    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
+    "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI",
+    "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+}
 
-    # Required columns
-    required_columns = [
-        "customer_id",
-        "customer_unique_id",
-        "customer_zip_code_prefix",
-        "customer_city",
-        "customer_state"
-    ]
 
-    missing = [col for col in required_columns if col not in df.columns]
-    if missing:
-        raise ValueError(f"Missing required columns: {missing}")
+def validate_customers(df: DataFrame) -> DataFrame:
+    """
+    Validate customer records:
+    - customer_state must be a valid 2‑letter Brazilian state code
+    - customer_id must be unique
+    - ZIP code prefix must be between 1000 and 99999
+    """
 
-    # customer_id must be non-null
-    if df.filter(F.col("customer_id").isNull()).count() > 0:
-        raise ValueError("customer_id contains null values")
+    # 1. Validate state codes
+    invalid_states = (
+        df.filter(~F.col("customer_state").isin(list(VALID_STATES)))
+    )
 
-    # customer_id must be unique
-    dup_count = df.groupBy("customer_id").count().filter(
-        F.col("count") > 1).count()
-    if dup_count > 0:
-        raise ValueError("Duplicate customer_id values detected")
+    if invalid_states.count() > 0:
+        bad_state = invalid_states.first()["customer_state"]
+        raise ValueError(f"Invalid customer_state: {bad_state}")
 
-    # Validate state format (two uppercase letters)
-    invalid_states = df.filter(
-        ~F.col("customer_state").rlike("^[A-Z]{2}$")).count()
-    if invalid_states > 0:
-        raise ValueError("Invalid customer_state format detected")
+    # 2. Validate duplicate customer_id
+    dup_ids = (
+        df.groupBy("customer_id")
+        .count()
+        .filter(F.col("count") > 1)
+    )
 
-    # Validate ZIP code range (avoid unary ~)
+    if dup_ids.count() > 0:
+        bad_id = dup_ids.first()["customer_id"]
+        raise ValueError(f"Duplicate customer_id: {bad_id}")
+
+    # 3. Validate ZIP code range
     invalid_zip = df.filter(
-        F.col("customer_zip_code_prefix").between(1000, 99999) == False
-    ).count()
+        (F.col("customer_zip_code_prefix") < 1000)
+        | (F.col("customer_zip_code_prefix") > 99999)
+    )
 
-    if invalid_zip > 0:
-        raise ValueError("Invalid customer_zip_code_prefix detected")
+    if invalid_zip.count() > 0:
+        bad_zip = invalid_zip.first()["customer_zip_code_prefix"]
+        raise ValueError(f"Invalid ZIP code prefix: {bad_zip}")
 
     return df
