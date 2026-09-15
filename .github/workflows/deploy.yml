@@ -46,6 +46,7 @@ jobs:
       NB_GOLD_DIMSELLER: ${{ secrets.GOLD_DIMSELLER }}
       NB_GOLD_FACTORDERS: ${{ secrets.GOLD_FACTORDERS }}
       NB_GOLD_FACTPAYMENTS: ${{ secrets.GOLD_FACTPAYMENTS }}
+      NB_GOLD_FACTREVIEW: ${{ secrets.GOLD_FACTREVIEW }}
 
     steps:
       - name: Checkout repository
@@ -148,13 +149,13 @@ jobs:
         run: python .github/scripts/deploy_notebook.py notebooks/Gold_DimSeller.notebook/notebook-content.json $NB_GOLD_DIMSELLER
 
       - name: Deploy Gold FactOrders
-        run: python .github/scripts/deploy_notebook.py notebooks/Gold_FactOrders.notebook/notebook-content.json $NB_GOLD_FACTORDERS
+        run: python .github/scripts/deploy_notebook.py notebooks/Gold_FactOrder.notebook/notebook-content.json $NB_GOLD_FACTORDERS
 
       - name: Deploy Gold FactOrderItem
         run: python .github/scripts/deploy_notebook.py notebooks/Gold_FactOrderItem.notebook/notebook-content.json $NB_GOLD_FACTPAYMENTS
 
       - name: Deploy Gold FactReview
-        run: python .github/scripts/deploy_notebook.py notebooks/Gold_FactReview.notebook/notebook-content.json $NB_GOLD_FACTREVIEWS
+        run: python .github/scripts/deploy_notebook.py notebooks/Gold_FactReview.notebook/notebook-content.json $NB_GOLD_FACTREVIEW
 
       # TRIGGER PIPELINE
 
