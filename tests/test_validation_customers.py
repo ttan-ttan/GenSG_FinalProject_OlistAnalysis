@@ -17,12 +17,6 @@ sys.path.append(os.path.abspath(os.path.join(
     os.path.dirname(__file__), "..", "src")))
 
 
-@pytest.fixture(scope="module")
-def spark():
-    """Create a SparkSession for this test module."""
-    return SparkSession.builder.getOrCreate()
-
-
 def test_validate_customers_valid(spark):
     """Ensure valid customer records pass validation without errors."""
     df = spark.createDataFrame(
