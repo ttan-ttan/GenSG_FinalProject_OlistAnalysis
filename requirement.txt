@@ -11,5 +11,5 @@ pytest==8.2.0
 # Optional but recommended for linting
 pylint==3.2.0
 
-# Optional: for type checking
-pyspark-stubs==3.5.0
+# Optional: for type checking (compatible with Python 3.10)
+pyspark-stubs==3.0.0.post3
