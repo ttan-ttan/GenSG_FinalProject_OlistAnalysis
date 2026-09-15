@@ -6,6 +6,7 @@ This script is executed by GitHub Actions to update notebooks automatically.
 import os
 import requests
 
+# Environment variables from GitHub Actions
 FABRIC_WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")
 FABRIC_LAKEHOUSE_ID = os.getenv("FABRIC_LAKEHOUSE_ID")
 FABRIC_ACCESS_TOKEN = os.getenv("FABRIC_ACCESS_TOKEN")
@@ -21,8 +22,13 @@ HEADERS = {
 
 def deploy_notebook(notebook_path: str, notebook_name: str):
     """
-    Upload a notebook file to Fabric Lakehouse Files/notebooks.
+    Upload a Fabric notebook JSON file to Lakehouse Files/notebooks.
     """
+
+    print(f"Deploying: {notebook_path}")
+
+    if not os.path.exists(notebook_path):
+        raise FileNotFoundError(f"Notebook file not found: {notebook_path}")
 
     url = (
         f"{BASE_URL}/lakehouses/"
@@ -42,4 +48,20 @@ def deploy_notebook(notebook_path: str, notebook_name: str):
 
 
 if __name__ == "__main__":
-    deploy_notebook("notebooks/gold_customers.ipynb", "gold_customers.ipynb")
+    # Bronze
+    deploy_notebook(
+        "notebooks/Bronze_Customers.notebook/notebook-content.json",
+        "Bronze_Customers.notebook"
+    )
+
+    # Silver
+    deploy_notebook(
+        "notebooks/Silver_Customers.notebook/notebook-content.json",
+        "Silver_Customers.notebook"
+    )
+
+    # Gold
+    deploy_notebook(
+        "notebooks/Gold_Customers.notebook/notebook-content.json",
+        "Gold_Customers.notebook"
+    )
