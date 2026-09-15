@@ -136,10 +136,10 @@ jobs:
       # GOLD NOTEBOOKS
 
       - name: Deploy Gold Customers
-        run: python .github/scripts/deploy_notebook.py notebooks/Gold_Customers.notebook/notebook-content.json $NB_GOLD_CUSTOMERS
+        run: python .github/scripts/deploy_notebook.py notebooks/Gold_DimCustomer.notebook/notebook-content.json $NB_GOLD_CUSTOMERS
 
       - name: Deploy Gold DimCustomer
-        run: python .github/scripts/deploy_notebook.py notebooks/Gold_DimCustomer.notebook/notebook-content.json $NB_GOLD_DIMCUSTOMER
+        run: python .github/scripts/deploy_notebook.py notebooks/Gold_DimDate.notebook/notebook-content.json $NB_GOLD_DIMCUSTOMER
 
       - name: Deploy Gold DimProduct
         run: python .github/scripts/deploy_notebook.py notebooks/Gold_DimProduct.notebook/notebook-content.json $NB_GOLD_DIMPRODUCT
@@ -150,8 +150,11 @@ jobs:
       - name: Deploy Gold FactOrders
         run: python .github/scripts/deploy_notebook.py notebooks/Gold_FactOrders.notebook/notebook-content.json $NB_GOLD_FACTORDERS
 
-      - name: Deploy Gold FactPayments
-        run: python .github/scripts/deploy_notebook.py notebooks/Gold_FactPayments.notebook/notebook-content.json $NB_GOLD_FACTPAYMENTS
+      - name: Deploy Gold FactOrderItem
+        run: python .github/scripts/deploy_notebook.py notebooks/Gold_FactOrderItem.notebook/notebook-content.json $NB_GOLD_FACTPAYMENTS
+
+      - name: Deploy Gold FactReview
+        run: python .github/scripts/deploy_notebook.py notebooks/Gold_FactReview.notebook/notebook-content.json $NB_GOLD_FACTREVIEWS
 
       # TRIGGER PIPELINE
 
