@@ -136,10 +136,10 @@ jobs:
 
       # GOLD NOTEBOOKS
 
-      - name: Deploy Gold Customers
+      - name: Deploy Gold DimCustomers
         run: python .github/scripts/deploy_notebook.py notebooks/Gold_DimCustomer.notebook/notebook-content.json $NB_GOLD_CUSTOMERS
 
-      - name: Deploy Gold DimCustomer
+      - name: Deploy Gold DimDate
         run: python .github/scripts/deploy_notebook.py notebooks/Gold_DimDate.notebook/notebook-content.json $NB_GOLD_DIMCUSTOMER
 
       - name: Deploy Gold DimProduct
