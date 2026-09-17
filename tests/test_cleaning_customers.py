@@ -91,3 +91,19 @@ def test_clean_customers_zip_validation(df_valid_zip, df_invalid_zip):
 
     assert cleaned.count() == 1
     assert cleaned.first()["customer_id"] == "id2"
+
+
+def test_clean_customers_basic(spark):
+    """End-to-end cleaning test with mixed valid/invalid rows."""
+    df = spark.createDataFrame(
+        [
+            ("id1", "uid1", "12345", " Sao Paulo ", "sp"),
+            ("id2", None, "12345", "Campinas", "SP"),  # invalid unique_id
+        ],
+        ["customer_id", "customer_unique_id", "customer_zip_code_prefix",
+         "customer_city", "customer_state"]
+    )
+
+    cleaned = clean_customers(df)
+    assert cleaned.count() == 1
+    assert cleaned.first()["customer_id"] == "id1"

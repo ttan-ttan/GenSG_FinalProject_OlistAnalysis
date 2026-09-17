@@ -42,9 +42,11 @@ jobs:
       # Gold
       NB_GOLD_CUSTOMERS: ${{ secrets.GOLD_CUSTOMERS }}
       NB_GOLD_DIMCUSTOMER: ${{ secrets.GOLD_DIMCUSTOMER }}
+      NB_GOLD_DIMDATE: ${{ secrets.GOLD_DIMDATE }}
       NB_GOLD_DIMPRODUCT: ${{ secrets.GOLD_DIMPRODUCT }}
       NB_GOLD_DIMSELLER: ${{ secrets.GOLD_DIMSELLER }}
       NB_GOLD_FACTORDERS: ${{ secrets.GOLD_FACTORDERS }}
+      NB_GOLD_FACTORDERITEM: ${{ secrets.GOLD_FACTORDERITEM }}
       NB_GOLD_FACTPAYMENTS: ${{ secrets.GOLD_FACTPAYMENTS }}
       NB_GOLD_FACTREVIEW: ${{ secrets.GOLD_FACTREVIEW }}
 
@@ -66,8 +68,8 @@ jobs:
         id: get_token
         run: |
           response=$(curl -X POST -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "grant_type=client_credentials&client_id=$CLIENT_ID&client_secret=$CLIENT_SECRET&scope=https://api.fabric.microsoft.com/.default" \
-            "https://login.microsoftonline.com/$TENANT_ID/oauth2/v2.0/token")
+          -d "grant_type=client_credentials&client_id=$CLIENT_ID&client_secret=$CLIENT_SECRET&scope=https://api.fabric.microsoft.com/.default" \
+          "https://login.microsoftonline.com/$TENANT_ID/oauth2/v2.0/token")
           echo "FABRIC_ACCESS_TOKEN=$(echo $response | jq -r '.access_token')" >> $GITHUB_ENV
 
       - name: Run unit tests
@@ -76,7 +78,7 @@ jobs:
       - name: Upload src folder to OneLake
         run: python .github/scripts/upload_src_folder.py
 
-      # BRONZE NOTEBOOKS
+      # Bronze Notebook Deployment
 
       - name: Deploy Bronze Customers
         run: python .github/scripts/deploy_notebook.py notebooks/Bronze_Customers.notebook/notebook-content.json $NB_BRONZE_CUSTOMERS
@@ -105,7 +107,7 @@ jobs:
       - name: Deploy Bronze Sellers
         run: python .github/scripts/deploy_notebook.py notebooks/Bronze_Sellers.notebook/notebook-content.json $NB_BRONZE_SELLERS
 
-      # SILVER NOTEBOOKS
+      # Silver Notebook Deployment
 
       - name: Deploy Silver Customers
         run: python .github/scripts/deploy_notebook.py notebooks/Silver_Customers.notebook/notebook-content.json $NB_SILVER_CUSTOMERS
@@ -134,13 +136,16 @@ jobs:
       - name: Deploy Silver Sellers
         run: python .github/scripts/deploy_notebook.py notebooks/Silver_Sellers.notebook/notebook-content.json $NB_SILVER_SELLERS
 
-      # GOLD NOTEBOOKS
+      # Gold Notebook Deployment
 
-      - name: Deploy Gold DimCustomers
-        run: python .github/scripts/deploy_notebook.py notebooks/Gold_DimCustomer.notebook/notebook-content.json $NB_GOLD_CUSTOMERS
+      - name: Deploy Gold Customers
+        run: python .github/scripts/deploy_notebook.py notebooks/Gold_Customers.notebook/notebook-content.json $NB_GOLD_CUSTOMERS
+
+      - name: Deploy Gold DimCustomer
+        run: python .github/scripts/deploy_notebook.py notebooks/Gold_DimCustomer.notebook/notebook-content.json $NB_GOLD_DIMCUSTOMER
 
       - name: Deploy Gold DimDate
-        run: python .github/scripts/deploy_notebook.py notebooks/Gold_DimDate.notebook/notebook-content.json $NB_GOLD_DIMCUSTOMER
+        run: python .github/scripts/deploy_notebook.py notebooks/Gold_DimDate.notebook/notebook-content.json $NB_GOLD_DIMDATE
 
       - name: Deploy Gold DimProduct
         run: python .github/scripts/deploy_notebook.py notebooks/Gold_DimProduct.notebook/notebook-content.json $NB_GOLD_DIMPRODUCT
@@ -152,12 +157,15 @@ jobs:
         run: python .github/scripts/deploy_notebook.py notebooks/Gold_FactOrder.notebook/notebook-content.json $NB_GOLD_FACTORDERS
 
       - name: Deploy Gold FactOrderItem
-        run: python .github/scripts/deploy_notebook.py notebooks/Gold_FactOrderItem.notebook/notebook-content.json $NB_GOLD_FACTPAYMENTS
+        run: python .github/scripts/deploy_notebook.py notebooks/Gold_FactOrderItem.notebook/notebook-content.json $NB_GOLD_FACTORDERITEM
+
+      - name: Deploy Gold FactPayments
+        run: python .github/scripts/deploy_notebook.py notebooks/Gold_FactPayments.notebook/notebook-content.json $NB_GOLD_FACTPAYMENTS
 
       - name: Deploy Gold FactReview
         run: python .github/scripts/deploy_notebook.py notebooks/Gold_FactReview.notebook/notebook-content.json $NB_GOLD_FACTREVIEW
 
-      # TRIGGER PIPELINE
-
+      # Trigger Pipeline
+  
       - name: Trigger Fabric Pipeline
         run: python .github/scripts/trigger_pipeline.py

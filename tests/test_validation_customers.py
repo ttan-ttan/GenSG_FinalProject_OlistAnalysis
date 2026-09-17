@@ -32,14 +32,13 @@ def test_validate_customers_valid(spark):
     assert df_val.count() == 2
 
 
-def test_validate_customers_invalid_state(spark):
-    """Ensure validation fails when customer_state is not a valid 2‑letter code."""
+def test_validate_customers_null_unique_id(spark):
+    """Ensure validation fails when customer_unique_id is null."""
     df = spark.createDataFrame(
-        [("C001", "U001", 1234, "sao paulo", "XX")],
+        [("C001", None, 1234, "sao paulo", "SP")],
         ["customer_id", "customer_unique_id", "customer_zip_code_prefix",
          "customer_city", "customer_state"]
     )
-
     with pytest.raises(ValueError):
         validate_customers(df)
 
@@ -63,6 +62,18 @@ def test_validate_customers_invalid_zip(spark):
     """Ensure validation fails when ZIP code prefix is outside the valid range."""
     df = spark.createDataFrame(
         [("C001", "U001", 50, "sao paulo", "SP")],
+        ["customer_id", "customer_unique_id", "customer_zip_code_prefix",
+         "customer_city", "customer_state"]
+    )
+
+    with pytest.raises(ValueError):
+        validate_customers(df)
+
+
+def test_validate_customers_invalid_state(spark):
+    """Ensure validation fails when customer_state is not a valid 2‑letter code."""
+    df = spark.createDataFrame(
+        [("C001", "U001", 1234, "sao paulo", "XX")],
         ["customer_id", "customer_unique_id", "customer_zip_code_prefix",
          "customer_city", "customer_state"]
     )
