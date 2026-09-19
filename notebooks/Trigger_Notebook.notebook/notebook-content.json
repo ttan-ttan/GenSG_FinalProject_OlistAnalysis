@@ -1,0 +1,38 @@
+{
+    "nbformat": 4,
+    "nbformat_minor": 5,
+    "cells": [
+        {
+            "cell_type": "markdown",
+            "metadata": {
+                "language": "markdown"
+            },
+            "source": [
+                "# Trigger Notebook\n",
+                "\n",
+                "This notebook is used to verify that the Fabric notebook content has been updated.\n"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "metadata": {
+                "language": "python"
+            },
+            "source": [
+                "from datetime import datetime, timezone\n",
+                "\n",
+                "TRIGGER_NOTEBOOK_VERSION = \"1.0\"\n",
+                "updated_at = datetime.now(timezone.utc).isoformat()\n",
+                "\n",
+                "print(f\"Trigger notebook version: {TRIGGER_NOTEBOOK_VERSION}\")\n",
+                "print(f\"Executed at UTC: {updated_at}\")\n",
+                "print(\"Fabric trigger notebook update test succeeded.\")\n"
+            ],
+            "outputs": [],
+            "execution_count": null
+        }
+    ],
+    "metadata": {
+        "language": "python"
+    }
+}
