@@ -21,7 +21,7 @@
             "source": [
                 "from datetime import datetime, timezone\n",
                 "\n",
-                "TRIGGER_NOTEBOOK_VERSION = \"1.0\"\n",
+                "TRIGGER_NOTEBOOK_VERSION = \"1.1\"\n",
                 "updated_at = datetime.now(timezone.utc).isoformat()\n",
                 "\n",
                 "print(f\"Trigger notebook version: {TRIGGER_NOTEBOOK_VERSION}\")\n",
