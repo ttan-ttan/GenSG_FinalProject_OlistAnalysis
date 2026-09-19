@@ -1,9 +1,7 @@
 name: Upload src to OneLake
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   upload:
