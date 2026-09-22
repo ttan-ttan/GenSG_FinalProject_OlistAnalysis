@@ -8,6 +8,7 @@ Test Suite: Validation Logic for Customers Dataset
 
 from src.validation_customers import validate_customers
 from pyspark.sql import SparkSession
+from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 import pytest
 import sys
 import os
@@ -36,8 +37,13 @@ def test_validate_customers_null_unique_id(spark):
     """Ensure validation fails when customer_unique_id is null."""
     df = spark.createDataFrame(
         [("C001", None, 1234, "sao paulo", "SP")],
-        ["customer_id", "customer_unique_id", "customer_zip_code_prefix",
-         "customer_city", "customer_state"]
+        StructType([
+            StructField("customer_id", StringType(), True),
+            StructField("customer_unique_id", StringType(), True),
+            StructField("customer_zip_code_prefix", IntegerType(), True),
+            StructField("customer_city", StringType(), True),
+            StructField("customer_state", StringType(), True),
+        ])
     )
     with pytest.raises(ValueError):
         validate_customers(df)

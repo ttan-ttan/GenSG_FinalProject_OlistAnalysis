@@ -15,7 +15,7 @@ VALID_STATES = {
 }
 
 
-def validate_customers_gold(df: DataFrame) -> DataFrame:
+def validate_dim_customer_gold(df: DataFrame) -> DataFrame:
     """Validate Gold customer dimension."""
 
     # Unique customer_id
@@ -53,3 +53,6 @@ def validate_customers_gold(df: DataFrame) -> DataFrame:
             raise ValueError(f"Null critical field in Gold: {col}")
 
     return df
+
+
+validate_customers_gold = validate_dim_customer_gold
