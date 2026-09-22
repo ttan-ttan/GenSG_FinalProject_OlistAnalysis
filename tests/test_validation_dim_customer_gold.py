@@ -1,9 +1,22 @@
+# pylint: disable=redefined-outer-name
+# pylint: disable=wrong-import-order
+# pylint: disable=no-member
+
 """
-Test Suite: Gold Validation for Customers Dimension
+Test Suite: Gold validation for customers dimension.
+
+Purpose:
+    Ensure Gold-layer dimensional integrity and business rule correctness.
+    These tests validate:
+        - Unique customer_id
+        - Valid Brazilian state codes
+        - Logical first_purchase_date (not future)
+        - Critical non-null fields
 """
 
+
+from src.validation_dim_customer_gold import validate_dim_customer_gold
 import pytest
-from src.validation_customers_gold import validate_customers_gold
 
 
 def test_gold_valid(spark):
@@ -16,8 +29,33 @@ def test_gold_valid(spark):
         ["customer_id", "customer_city", "customer_state",
             "customer_first_purchase_date"]
     )
-    out = validate_customers_gold(df)
+    out = validate_dim_customer_gold(df)
     assert out.count() == 2
+
+
+def test_gold_duplicate_id(spark):
+    """Ensure validation fails when duplicate customer_id values exist."""
+    df = spark.createDataFrame(
+        [
+            ("C001", "sao paulo", "SP", "2020-01-01"),
+            ("C001", "campinas", "SP", "2021-05-10"),
+        ],
+        ["customer_id", "customer_city", "customer_state",
+            "customer_first_purchase_date"]
+    )
+    with pytest.raises(ValueError):
+        validate_dim_customer_gold(df)
+
+
+def test_gold_invalid_state(spark):
+    """Ensure validation fails when customer_state is not a valid Brazilian state."""
+    df = spark.createDataFrame(
+        [("C001", "sao paulo", "XX", "2020-01-01")],
+        ["customer_id", "customer_city", "customer_state",
+            "customer_first_purchase_date"]
+    )
+    with pytest.raises(ValueError):
+        validate_dim_customer_gold(df)
 
 
 def test_gold_future_date(spark):
@@ -28,4 +66,15 @@ def test_gold_future_date(spark):
             "customer_first_purchase_date"]
     )
     with pytest.raises(ValueError):
-        validate_customers_gold(df)
+        validate_dim_customer_gold(df)
+
+
+def test_gold_null_critical_fields(spark):
+    """Ensure validation fails when any critical field is null."""
+    df = spark.createDataFrame(
+        [("C001", None, "SP", "2020-01-01")],
+        ["customer_id", "customer_city", "customer_state",
+            "customer_first_purchase_date"]
+    )
+    with pytest.raises(ValueError):
+        validate_dim_customer_gold(df)

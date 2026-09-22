@@ -1,61 +1,41 @@
-"""
-Test Suite: Gold validation for customers dimension.
-"""
+"""Tests for Gold customer dimension cleaning."""
 
-import pytest
-from pyspark.sql import SparkSession
-from src.validation_customers_gold import validate_customers_gold
+from src.cleaning_dim_customer_gold import clean_customers_gold
 
 
-def test_gold_valid(spark):
-    """Ensure valid customer records pass gold validation without errors."""
+CUSTOMER_COLUMNS = [
+    "customer_id",
+    "customer_city",
+    "customer_state",
+    "customer_first_purchase_date",
+]
+
+
+def test_gold_cleaning_standardizes_city_and_state(spark):
+    """Gold cleaning trims and standardizes city and state values."""
+    df = spark.createDataFrame(
+        [("C001", "  Sao Paulo  ", " sp ", "2020-01-01")],
+        CUSTOMER_COLUMNS,
+    )
+
+    result = clean_customers_gold(df).first()
+
+    assert result["customer_city"] == "sao paulo"
+    assert result["customer_state"] == "SP"
+
+
+def test_gold_cleaning_removes_unusable_customer_records(spark):
+    """Gold cleaning removes rows without an ID, date, or with a future date."""
     df = spark.createDataFrame(
         [
-            ("C001", "sao paulo", "SP", "2020-01-01"),
-            ("C002", "campinas", "SP", "2021-05-10"),
+            (None, "sao paulo", "SP", "2020-01-01"),
+            ("C002", "campinas", "SP", None),
+            ("C003", "santos", "SP", "2999-01-01"),
+            ("C004", "recife", "PE", "2021-05-10"),
         ],
-        ["customer_id", "customer_city", "customer_state",
-            "customer_first_purchase_date"]
+        CUSTOMER_COLUMNS,
     )
 
-    out = validate_customers_gold(df)
-    assert out.count() == 2
+    result = clean_customers_gold(df)
 
-
-def test_gold_duplicate_id(spark):
-    """Ensure validation fails when duplicate customer_id values exist."""
-    df = spark.createDataFrame(
-        [
-            ("C001", "sao paulo", "SP", "2020-01-01"),
-            ("C001", "campinas", "SP", "2021-05-10"),
-        ],
-        ["customer_id", "customer_city", "customer_state",
-            "customer_first_purchase_date"]
-    )
-
-    with pytest.raises(ValueError):
-        validate_customers_gold(df)
-
-
-def test_gold_invalid_state(spark):
-    """Ensure validation fails when customer_state is not a valid Brazilian state."""
-    df = spark.createDataFrame(
-        [("C001", "sao paulo", "XX", "2020-01-01")],
-        ["customer_id", "customer_city", "customer_state",
-            "customer_first_purchase_date"]
-    )
-
-    with pytest.raises(ValueError):
-        validate_customers_gold(df)
-
-
-def test_gold_future_date(spark):
-    """Ensure validation fails when first_purchase_date is in the future."""
-    df = spark.createDataFrame(
-        [("C001", "sao paulo", "SP", "2999-01-01")],
-        ["customer_id", "customer_city", "customer_state",
-            "customer_first_purchase_date"]
-    )
-
-    with pytest.raises(ValueError):
-        validate_customers_gold(df)
+    assert [row["customer_id"] for row in result.collect()] == ["C004"]

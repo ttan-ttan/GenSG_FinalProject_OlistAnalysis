@@ -15,9 +15,10 @@ VALID_STATES = {
 }
 
 
-def validate_customers_gold(df: DataFrame) -> DataFrame:
+def validate_dim_customer_gold(df: DataFrame) -> DataFrame:
     """Validate Gold customer dimension."""
 
+    # Unique customer_id
     dup_ids = (
         df.groupBy("customer_id")
           .count()
@@ -27,17 +28,20 @@ def validate_customers_gold(df: DataFrame) -> DataFrame:
         raise ValueError(
             f"Duplicate customer_id in Gold: {dup_ids.first()['customer_id']}")
 
+    # Valid state codes
     invalid_states = df.filter(
         ~F.col("customer_state").isin(list(VALID_STATES)))
     if invalid_states.count() > 0:
         raise ValueError(
             f"Invalid state in Gold: {invalid_states.first()['customer_state']}")
 
+    # Logical first_purchase_date
     future_dates = df.filter(
         F.col("customer_first_purchase_date") > F.current_timestamp())
     if future_dates.count() > 0:
         raise ValueError("Gold contains future first_purchase_date")
 
+    # Null critical fields
     critical_cols = [
         "customer_id",
         "customer_city",
@@ -49,3 +53,6 @@ def validate_customers_gold(df: DataFrame) -> DataFrame:
             raise ValueError(f"Null critical field in Gold: {col}")
 
     return df
+
+
+validate_customers_gold = validate_dim_customer_gold
