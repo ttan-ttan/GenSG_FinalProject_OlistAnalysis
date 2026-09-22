@@ -8,6 +8,7 @@ Test Suite: Validation Logic for Sellers Dataset
 
 from src.validation_sellers import validate_sellers
 import pytest
+from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 import sys
 import os
 
@@ -32,9 +33,15 @@ def test_validate_sellers_valid(spark):
 
 def test_validate_sellers_null_id(spark):
     """Ensure validation fails when seller_id is null."""
+    schema = StructType([
+        StructField("seller_id", StringType(), True),
+        StructField("seller_zip_code_prefix", IntegerType(), True),
+        StructField("seller_city", StringType(), True),
+        StructField("seller_state", StringType(), True),
+    ])
     df = spark.createDataFrame(
         [(None, 1234, "campinas", "SP")],
-        ["seller_id", "seller_zip_code_prefix", "seller_city", "seller_state"]
+        schema,
     )
 
     with pytest.raises(ValueError):

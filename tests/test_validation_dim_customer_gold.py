@@ -17,6 +17,7 @@ Purpose:
 
 from src.validation_dim_customer_gold import validate_dim_customer_gold
 import pytest
+from pyspark.sql.types import StringType, StructField, StructType
 
 
 def test_gold_valid(spark):
@@ -71,10 +72,15 @@ def test_gold_future_date(spark):
 
 def test_gold_null_critical_fields(spark):
     """Ensure validation fails when any critical field is null."""
+    schema = StructType([
+        StructField("customer_id", StringType(), True),
+        StructField("customer_city", StringType(), True),
+        StructField("customer_state", StringType(), True),
+        StructField("customer_first_purchase_date", StringType(), True),
+    ])
     df = spark.createDataFrame(
         [("C001", None, "SP", "2020-01-01")],
-        ["customer_id", "customer_city", "customer_state",
-            "customer_first_purchase_date"]
+        schema,
     )
     with pytest.raises(ValueError):
         validate_dim_customer_gold(df)

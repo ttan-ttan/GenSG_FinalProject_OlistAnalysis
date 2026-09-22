@@ -24,8 +24,10 @@ def validate_dim_seller_gold(df: DataFrame) -> DataFrame:
         raise ValueError(
             f"Duplicate seller_id in Gold: {dup.first()['seller_id']}")
 
-    # Valid state codes (cleanest PySpark-safe negation)
-    invalid = df.filter(F.not_(F.col("seller_state").isin(list(VALID_STATES))))
+    # Valid state codes
+    invalid = df.filter(
+        F.col("seller_state").isin(list(VALID_STATES)).__invert__()
+    )
     if invalid.count() > 0:
         raise ValueError(
             f"Invalid seller_state in Gold: {invalid.first()['seller_state']}")
