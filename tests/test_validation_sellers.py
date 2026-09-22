@@ -7,8 +7,6 @@ Test Suite: Validation Logic for Sellers Dataset
 """
 
 from src.validation_sellers import validate_sellers
-from pyspark.sql import SparkSession
-from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 import pytest
 import sys
 import os

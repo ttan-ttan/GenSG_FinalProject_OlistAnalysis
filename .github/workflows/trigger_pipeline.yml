@@ -12,7 +12,6 @@ jobs:
       CLIENT_ID: ${{ secrets.CLIENT_ID }}
       CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
       FABRIC_WORKSPACE_ID: ${{ secrets.FABRIC_WORKSPACE_ID }}
-      FABRIC_PIPELINE_ID: ${{ secrets.FABRIC_PIPELINE_ID }}
 
     steps:
       - name: Checkout repository
