@@ -3,16 +3,9 @@ from pyspark.sql import SparkSession
 from src.cleaning_orders import clean_orders
 
 
-def test_clean_orders():
+def test_clean_orders(spark):
     """Test cleaning logic for the Orders dataset."""
 
-    # Create a small Spark session for testing
-    spark = (
-        SparkSession.builder
-        .master("local[1]")
-        .appName("test_clean_orders")
-        .getOrCreate()
-    )
 
     # Create one fake Orders record
     data = [
@@ -74,5 +67,3 @@ def test_clean_orders():
 
     # Make sure cleaning did not remove the row
     assert cleaned_df.count() == 1
-
-    spark.stop()
