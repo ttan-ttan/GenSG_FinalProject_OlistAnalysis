@@ -17,9 +17,7 @@ BASE_URL = (
     f"{FABRIC_LAKEHOUSE_ID}/files/src"
 )
 
-HEADERS = {
-    "Authorization": f"Bearer {FABRIC_ACCESS_TOKEN}"
-}
+HEADERS = {"Authorization": f"Bearer {FABRIC_ACCESS_TOKEN}"}
 
 for root, dirs, files in os.walk(SRC_FOLDER):
     for file in files:
@@ -28,11 +26,6 @@ for root, dirs, files in os.walk(SRC_FOLDER):
         onelake_path = f"{BASE_URL}/{relative_path}?overwrite=true"
 
         with open(local_path, "rb") as f:
-            response = requests.put(
-                onelake_path,
-                headers=HEADERS,
-                data=f,
-                timeout=30
-            )
+            response = requests.put(onelake_path, headers=HEADERS, data=f, timeout=30)
 
         print(f"Uploaded {relative_path}: {response.status_code}")

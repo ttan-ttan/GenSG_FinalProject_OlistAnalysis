@@ -1,4 +1,3 @@
-
 # pylint: disable=redefined-outer-name
 # pylint: disable=wrong-import-order
 # pylint: disable=unused-import
@@ -21,14 +20,12 @@ Covers:
 """
 
 from src.cleaning_sellers import clean_sellers
-from pyspark.sql import SparkSession
 import pytest
 import sys
 import os
 
 # Add src to PYTHONPATH
-sys.path.append(os.path.abspath(os.path.join(
-    os.path.dirname(__file__), "..", "src")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
 
 @pytest.fixture
@@ -62,8 +59,7 @@ def test_clean_sellers_types(df_mixed_types):
     """Ensure columns are cast to correct types."""
     cleaned = clean_sellers(df_mixed_types)
 
-    assert cleaned.schema["seller_zip_code_prefix"].dataType.typeName(
-    ) == "integer"
+    assert cleaned.schema["seller_zip_code_prefix"].dataType.typeName() == "integer"
     assert cleaned.schema["seller_city"].dataType.typeName() == "string"
 
 
@@ -92,7 +88,7 @@ def test_clean_sellers_basic(spark):
             ("s1", "12345", " Sao Paulo ", "sp"),
             ("s2", "50", "Campinas", "SP"),  # invalid ZIP
         ],
-        ["seller_id", "seller_zip_code_prefix", "seller_city", "seller_state"]
+        ["seller_id", "seller_zip_code_prefix", "seller_city", "seller_state"],
     )
 
     cleaned = clean_sellers(df)

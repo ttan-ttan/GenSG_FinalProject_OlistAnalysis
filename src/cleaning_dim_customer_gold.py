@@ -18,10 +18,10 @@ def clean_customers_gold(df: DataFrame) -> DataFrame:
 
     df_clean = (
         df.filter(F.col("customer_id").isNotNull())
-          .filter(F.col("customer_first_purchase_date").isNotNull())
-          .filter(F.col("customer_first_purchase_date") <= F.current_timestamp())
-          .withColumn("customer_city", F.lower(F.trim(F.col("customer_city"))))
-          .withColumn("customer_state", F.upper(F.trim(F.col("customer_state"))))
+        .filter(F.col("customer_first_purchase_date").isNotNull())
+        .filter(F.col("customer_first_purchase_date") <= F.current_timestamp())
+        .withColumn("customer_city", F.lower(F.trim(F.col("customer_city"))))
+        .withColumn("customer_state", F.upper(F.trim(F.col("customer_state"))))
     )
 
     return df_clean

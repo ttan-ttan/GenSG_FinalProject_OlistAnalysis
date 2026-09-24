@@ -25,15 +25,12 @@ Notes:
 # pylint: disable=no-member
 
 from src.cleaning_customers import clean_customers
-from pyspark.sql import SparkSession
-import pyspark.sql.functions as F
 import pytest
 import sys
 import os
 
 # Add src to PYTHONPATH
-sys.path.append(os.path.abspath(os.path.join(
-    os.path.dirname(__file__), "..", "src")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
 
 @pytest.fixture
@@ -41,8 +38,13 @@ def df_mixed_types(spark):
     """Sample DF for type casting + city/state normalization tests."""
     return spark.createDataFrame(
         [("id1", "uid1", "12345", "sao paulo", "sp")],
-        ["customer_id", "customer_unique_id", "customer_zip_code_prefix",
-         "customer_city", "customer_state"],
+        [
+            "customer_id",
+            "customer_unique_id",
+            "customer_zip_code_prefix",
+            "customer_city",
+            "customer_state",
+        ],
     )
 
 
@@ -51,8 +53,13 @@ def df_valid_zip(spark):
     """Valid ZIP code row."""
     return spark.createDataFrame(
         [("id2", "uid2", "13056", "campinas", "SP")],
-        ["customer_id", "customer_unique_id", "customer_zip_code_prefix",
-         "customer_city", "customer_state"],
+        [
+            "customer_id",
+            "customer_unique_id",
+            "customer_zip_code_prefix",
+            "customer_city",
+            "customer_state",
+        ],
     )
 
 
@@ -61,8 +68,13 @@ def df_invalid_zip(spark):
     """Invalid ZIP code row."""
     return spark.createDataFrame(
         [("id1", "uid1", "999", "campinas", "SP")],
-        ["customer_id", "customer_unique_id", "customer_zip_code_prefix",
-         "customer_city", "customer_state"],
+        [
+            "customer_id",
+            "customer_unique_id",
+            "customer_zip_code_prefix",
+            "customer_city",
+            "customer_state",
+        ],
     )
 
 
@@ -70,8 +82,7 @@ def test_clean_customers_types(df_mixed_types):
     """Ensure columns are cast to correct types."""
     cleaned = clean_customers(df_mixed_types)
 
-    assert cleaned.schema["customer_zip_code_prefix"].dataType.typeName(
-    ) == "integer"
+    assert cleaned.schema["customer_zip_code_prefix"].dataType.typeName() == "integer"
     assert cleaned.schema["customer_city"].dataType.typeName() == "string"
 
 
@@ -100,8 +111,13 @@ def test_clean_customers_basic(spark):
             ("id1", "uid1", "12345", " Sao Paulo ", "sp"),
             ("id2", None, "12345", "Campinas", "SP"),  # invalid unique_id
         ],
-        ["customer_id", "customer_unique_id", "customer_zip_code_prefix",
-         "customer_city", "customer_state"]
+        [
+            "customer_id",
+            "customer_unique_id",
+            "customer_zip_code_prefix",
+            "customer_city",
+            "customer_state",
+        ],
     )
 
     cleaned = clean_customers(df)

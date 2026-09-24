@@ -9,7 +9,7 @@ datasets = [
     "Sellers",
     "Geolocation",
     "Payments",
-    "Reviews"
+    "Reviews",
 ]
 
 layers = ["Bronze", "Silver", "Gold"]
@@ -23,10 +23,10 @@ template = {
         {
             "cell_type": "markdown",
             "metadata": {},
-            "source": ["# Auto-generated notebook\n"]
+            "source": ["# Auto-generated notebook\n"],
         }
     ],
-    "metadata": {}
+    "metadata": {},
 }
 
 for dataset in datasets:

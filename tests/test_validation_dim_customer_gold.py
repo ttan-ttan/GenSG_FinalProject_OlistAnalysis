@@ -27,8 +27,12 @@ def test_gold_valid(spark):
             ("C001", "sao paulo", "SP", "2020-01-01"),
             ("C002", "campinas", "SP", "2021-05-10"),
         ],
-        ["customer_id", "customer_city", "customer_state",
-            "customer_first_purchase_date"]
+        [
+            "customer_id",
+            "customer_city",
+            "customer_state",
+            "customer_first_purchase_date",
+        ],
     )
     out = validate_dim_customer_gold(df)
     assert out.count() == 2
@@ -41,8 +45,12 @@ def test_gold_duplicate_id(spark):
             ("C001", "sao paulo", "SP", "2020-01-01"),
             ("C001", "campinas", "SP", "2021-05-10"),
         ],
-        ["customer_id", "customer_city", "customer_state",
-            "customer_first_purchase_date"]
+        [
+            "customer_id",
+            "customer_city",
+            "customer_state",
+            "customer_first_purchase_date",
+        ],
     )
     with pytest.raises(ValueError):
         validate_dim_customer_gold(df)
@@ -52,8 +60,12 @@ def test_gold_invalid_state(spark):
     """Ensure validation fails when customer_state is not a valid Brazilian state."""
     df = spark.createDataFrame(
         [("C001", "sao paulo", "XX", "2020-01-01")],
-        ["customer_id", "customer_city", "customer_state",
-            "customer_first_purchase_date"]
+        [
+            "customer_id",
+            "customer_city",
+            "customer_state",
+            "customer_first_purchase_date",
+        ],
     )
     with pytest.raises(ValueError):
         validate_dim_customer_gold(df)
@@ -63,8 +75,12 @@ def test_gold_future_date(spark):
     """Ensure validation fails when first_purchase_date is in the future."""
     df = spark.createDataFrame(
         [("C001", "sao paulo", "SP", "2999-01-01")],
-        ["customer_id", "customer_city", "customer_state",
-            "customer_first_purchase_date"]
+        [
+            "customer_id",
+            "customer_city",
+            "customer_state",
+            "customer_first_purchase_date",
+        ],
     )
     with pytest.raises(ValueError):
         validate_dim_customer_gold(df)
@@ -72,12 +88,14 @@ def test_gold_future_date(spark):
 
 def test_gold_null_critical_fields(spark):
     """Ensure validation fails when any critical field is null."""
-    schema = StructType([
-        StructField("customer_id", StringType(), True),
-        StructField("customer_city", StringType(), True),
-        StructField("customer_state", StringType(), True),
-        StructField("customer_first_purchase_date", StringType(), True),
-    ])
+    schema = StructType(
+        [
+            StructField("customer_id", StringType(), True),
+            StructField("customer_city", StringType(), True),
+            StructField("customer_state", StringType(), True),
+            StructField("customer_first_purchase_date", StringType(), True),
+        ]
+    )
     df = spark.createDataFrame(
         [("C001", None, "SP", "2020-01-01")],
         schema,
