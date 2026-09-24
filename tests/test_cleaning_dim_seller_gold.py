@@ -10,7 +10,7 @@ def test_gold_clean_valid(spark):
             ("S001", "sao paulo", "SP", 12345),
             ("S002", "campinas", "SP", 13056),
         ],
-        ["seller_id", "seller_city", "seller_state", "seller_zip_code_prefix"]
+        ["seller_id", "seller_city", "seller_state", "seller_zip_code_prefix"],
     )
 
     out = clean_sellers_gold(df)
@@ -23,7 +23,7 @@ def test_gold_clean_invalid_zip(spark):
         [
             ("S001", "sao paulo", "SP", 999),
         ],
-        ["seller_id", "seller_city", "seller_state", "seller_zip_code_prefix"]
+        ["seller_id", "seller_city", "seller_state", "seller_zip_code_prefix"],
     )
 
     out = clean_sellers_gold(df)
@@ -37,7 +37,7 @@ def test_gold_clean_missing_critical_fields(spark):
             (None, "sao paulo", "SP", 12345),
             ("S002", "campinas", "SP", None),
         ],
-        ["seller_id", "seller_city", "seller_state", "seller_zip_code_prefix"]
+        ["seller_id", "seller_city", "seller_state", "seller_zip_code_prefix"],
     )
 
     out = clean_sellers_gold(df)
@@ -51,12 +51,14 @@ def test_gold_clean_standardization(spark):
         [
             ("S001", "Sao Paulo", "sp", 12345),
         ],
-        ["seller_id", "seller_city", "seller_state", "seller_zip_code_prefix"]
+        ["seller_id", "seller_city", "seller_state", "seller_zip_code_prefix"],
     )
 
     out = clean_sellers_gold(df).first()
     assert out["seller_city"] == "sao paulo"
     assert out["seller_state"] == "SP"
+
+
 # python -m pytest -v tests/test_cleaning_dim_seller_gold.py tests/test_validation_dim_seller_
 # gold.py
 # need to stop after completion to exit.

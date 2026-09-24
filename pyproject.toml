@@ -1,0 +1,15 @@
+[tool.black]
+line-length = 88
+extend-exclude = '''
+(
+    ^/data/
+    | ^/notebooks/
+)
+'''
+
+[tool.ruff]
+line-length = 88
+exclude = [
+    "data",
+    "notebooks",
+]
