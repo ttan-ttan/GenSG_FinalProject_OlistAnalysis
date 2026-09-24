@@ -14,6 +14,7 @@ Validation handled here:
     3. Ensure order_id values are unique.
     4. Ensure order_status contains only accepted values.
     5. Ensure approval timestamps follow a logical order.
+    6. Ensure carrier delivery timestamps follow a logical order.
 
 Invalid records are not silently corrected because doing so could
 introduce assumptions into the dataset.
@@ -64,6 +65,16 @@ def validate_orders(df):
     if df.filter(F.col("customer_id").isNull()).count() > 0:
         raise ValueError("customer_id contains null values")
 
+    # order_status is required for order lifecycle analysis.
+    if df.filter(F.col("order_status").isNull()).count() > 0:
+        raise ValueError("order_status contains null values")
+
+    # An order must have a purchase timestamp.
+    if df.filter(F.col("order_purchase_timestamp").isNull()).count() > 0:
+        raise ValueError(
+            "order_purchase_timestamp contains null values"
+        )
+
     # Each row in the Orders dataset should represent one unique order.
     dup_count = (
         df.groupBy("order_id")
@@ -105,6 +116,20 @@ def validate_orders(df):
     if invalid_approval_time > 0:
         raise ValueError(
             "order_approved_at occurs before order_purchase_timestamp"
+        )
+    # Carrier delivery should not occur before the order was purchased.
+    invalid_carrier_time = df.filter(
+        F.col("order_delivered_carrier_date").isNotNull()
+        & (
+            F.col("order_delivered_carrier_date")
+            < F.col("order_purchase_timestamp")
+        )
+    ).count()
+
+    if invalid_carrier_time > 0:
+        raise ValueError(
+            "order_delivered_carrier_date occurs before "
+            "order_purchase_timestamp"
         )
 
     return df
