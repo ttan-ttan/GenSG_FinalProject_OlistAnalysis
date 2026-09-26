@@ -14,10 +14,10 @@ Purpose:
         - Critical non-null fields
 """
 
-
-from src.validation_dim_customer_gold import validate_dim_customer_gold
 import pytest
 from pyspark.sql.types import StringType, StructField, StructType
+
+from src.validation_dim_customer_gold import validate_dim_customer_gold
 
 
 def test_gold_valid(spark):
