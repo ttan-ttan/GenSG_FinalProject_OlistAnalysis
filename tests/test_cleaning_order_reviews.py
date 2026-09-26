@@ -10,7 +10,7 @@ The pattern in each test is usually:
   3. assert (check) that the output looks the way we expect
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pyspark.sql import Row
 from pyspark.sql import types as T
@@ -68,7 +68,7 @@ def test_casts_types_and_parses_timestamps(spark):
     assert isinstance(row["review_score"], int)
     assert row["review_score"] == 5
     # timestamps should now be real datetime objects
-    assert row["review_creation_date"] == datetime(2018, 1, 18, 0, 0, 0, tzinfo=timezone.utc)  # noqa: DTZ001
+    assert row["review_creation_date"] == datetime(2018, 1, 18, 0, 0, 0, tzinfo=timezone.utc)
     assert row["review_answer_timestamp"] == datetime(2018, 1, 18, 21, 46, 59)  # noqa: DTZ001
 
 
