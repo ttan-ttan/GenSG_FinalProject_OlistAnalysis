@@ -46,6 +46,7 @@ class ValidationResult:
                 block usage (e.g. duplicate review_id, which cleaning fixes)
     metrics  -> raw numbers behind each check, useful for logging/debugging
     """
+
     passed: bool
     row_count: int
     errors: list[str] = field(default_factory=list)
@@ -56,7 +57,9 @@ class ValidationResult:
         """Convenience method: call this if you want validation failure to
         stop your pipeline immediately with a Python exception."""
         if not self.passed:
-            raise ValueError("order_reviews validation failed: " + "; ".join(self.errors))
+            raise ValueError(
+                "order_reviews validation failed: " + "; ".join(self.errors)
+            )
 
 
 def _check_required_columns(df: DataFrame, errors: list[str]) -> bool:
@@ -85,7 +88,11 @@ def validate_order_reviews(df: DataFrame) -> ValidationResult:
     # checks - Spark would just crash on a column that doesn't exist
     if not _check_required_columns(df, errors):
         return ValidationResult(
-            passed=False, row_count=row_count, errors=errors, warnings=warnings, metrics=metrics
+            passed=False,
+            row_count=row_count,
+            errors=errors,
+            warnings=warnings,
+            metrics=metrics,
         )
 
     if row_count == 0:
@@ -124,7 +131,8 @@ def validate_order_reviews(df: DataFrame) -> ValidationResult:
 
     # --- CHECK 2: is review_score always between 1 and 5? -----------------
     out_of_range = df.filter(
-        F.col("review_score").isNotNull() & ~F.col("review_score").between(MIN_SCORE, MAX_SCORE)
+        F.col("review_score").isNotNull()
+        & ~F.col("review_score").between(MIN_SCORE, MAX_SCORE)
     ).count()
     metrics["review_score_out_of_range"] = out_of_range
     if out_of_range:
@@ -168,7 +176,11 @@ def validate_order_reviews(df: DataFrame) -> ValidationResult:
     # passed = True only if we found zero errors (warnings are OK)
     passed = len(errors) == 0
     return ValidationResult(
-        passed=passed, row_count=row_count, errors=errors, warnings=warnings, metrics=metrics
+        passed=passed,
+        row_count=row_count,
+        errors=errors,
+        warnings=warnings,
+        metrics=metrics,
     )
 
 
@@ -197,7 +209,9 @@ def quarantine_invalid_rows(df: DataFrame) -> DataFrame:
             )
         )
     if "review_creation_date" in df.columns:
-        reasons.append((F.col("review_creation_date").isNull(), "null review_creation_date"))
+        reasons.append(
+            (F.col("review_creation_date").isNull(), "null review_creation_date")
+        )
     if "review_answer_timestamp" in df.columns:
         reasons.append(
             (F.col("review_answer_timestamp").isNull(), "null review_answer_timestamp")

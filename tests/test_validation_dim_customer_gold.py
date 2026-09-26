@@ -14,7 +14,6 @@ Purpose:
         - Critical non-null fields
 """
 
-
 import pytest
 from pyspark.sql.types import StringType, StructField, StructType
 

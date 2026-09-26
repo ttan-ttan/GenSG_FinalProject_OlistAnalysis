@@ -13,7 +13,7 @@ def test_clean_order_items_basic(spark):
                 " seller001 ",
                 "2017-10-10 15:00:00",
                 "99.90",
-                "12.50"
+                "12.50",
             )
         ],
         [
@@ -23,8 +23,8 @@ def test_clean_order_items_basic(spark):
             "seller_id",
             "shipping_limit_date",
             "price",
-            "freight_value"
-        ]
+            "freight_value",
+        ],
     )
 
     cleaned = clean_order_items(df)

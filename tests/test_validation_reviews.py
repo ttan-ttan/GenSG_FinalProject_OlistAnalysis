@@ -34,7 +34,9 @@ def _row(**overrides):
         "order_id": "o1",
         "review_score": 5,
         "review_creation_date": datetime(2018, 1, 18, 0, 0, 0, tzinfo=timezone.utc),
-        "review_answer_timestamp": datetime(2018, 1, 18, 21, 46, 59, tzinfo=timezone.utc),
+        "review_answer_timestamp": datetime(
+            2018, 1, 18, 21, 46, 59, tzinfo=timezone.utc
+        ),
     }
     base.update(overrides)
     return Row(**base)
@@ -49,7 +51,9 @@ def test_missing_columns_fails_immediately(spark):
 
 def test_clean_data_passes(spark):
     # two perfectly valid rows -> should pass with zero errors
-    df = spark.createDataFrame([_row(), _row(review_id="r2", order_id="o2")], schema=SCHEMA)
+    df = spark.createDataFrame(
+        [_row(), _row(review_id="r2", order_id="o2")], schema=SCHEMA
+    )
     result = validate_order_reviews(df)
     assert result.passed is True
     assert result.errors == []
@@ -64,7 +68,9 @@ def test_null_ids_fail(spark):
 
 
 def test_out_of_range_score_fails(spark):
-    df = spark.createDataFrame([_row(review_score=9)], schema=SCHEMA)  # 9 is outside 1-5
+    df = spark.createDataFrame(
+        [_row(review_score=9)], schema=SCHEMA
+    )  # 9 is outside 1-5
     result = validate_order_reviews(df)
     assert result.passed is False
     assert result.metrics["review_score_out_of_range"] == 1
@@ -75,8 +81,12 @@ def test_reversed_timestamps_fail(spark):
     df = spark.createDataFrame(
         [
             _row(
-                review_creation_date=datetime(2018, 1, 20, 0, 0, 0, tzinfo=timezone.utc),
-                review_answer_timestamp=datetime(2018, 1, 18, 0, 0, 0, tzinfo=timezone.utc),
+                review_creation_date=datetime(
+                    2018, 1, 20, 0, 0, 0, tzinfo=timezone.utc
+                ),
+                review_answer_timestamp=datetime(
+                    2018, 1, 18, 0, 0, 0, tzinfo=timezone.utc
+                ),
             )
         ],
         schema=SCHEMA,
@@ -90,7 +100,7 @@ def test_duplicate_review_id_is_warning_not_error(spark):
     # same review_id "r1" used twice - this should be a WARNING, not a failure
     df = spark.createDataFrame([_row(), _row(order_id="o2")], schema=SCHEMA)
     result = validate_order_reviews(df)
-    assert result.passed is True   # still passes!
+    assert result.passed is True  # still passes!
     assert result.metrics["duplicate_review_id_groups"] == 1
     assert any("appear more than once" in w for w in result.warnings)
 
@@ -108,9 +118,9 @@ def test_raise_if_failed_raises_valueerror(spark):
 def test_quarantine_invalid_rows_tags_reasons(spark):
     df = spark.createDataFrame(
         [
-            _row(review_id="bad1", review_score=None),   # broken: missing score
-            _row(review_id="bad2", order_id=None),        # broken: missing order_id
-            _row(review_id="good", review_score=4),       # this one is fine
+            _row(review_id="bad1", review_score=None),  # broken: missing score
+            _row(review_id="bad2", order_id=None),  # broken: missing order_id
+            _row(review_id="good", review_score=4),  # this one is fine
         ],
         schema=SCHEMA,
     )
@@ -121,6 +131,6 @@ def test_quarantine_invalid_rows_tags_reasons(spark):
     for r in quarantined:
         reasons_by_id.setdefault(r["review_id"], []).append(r["validation_reason"])
 
-    assert "good" not in reasons_by_id                          # the good row shouldn't show up at all
+    assert "good" not in reasons_by_id  # the good row shouldn't show up at all
     assert "invalid review_score" in reasons_by_id["bad1"]
     assert "null order_id" in reasons_by_id["bad2"]

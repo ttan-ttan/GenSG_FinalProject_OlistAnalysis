@@ -62,10 +62,10 @@ CLEANED_COLUMNS: Final[list[str]] = [
     "review_comment_message",
     "review_creation_date",
     "review_answer_timestamp",
-    "has_title",             # True/False - did this review have a title?
-    "has_message",           # True/False - did this review have a message?
-    "message_length",        # how many characters long the message is
-    "response_time_hours",   # how many hours between review being written and answered
+    "has_title",  # True/False - did this review have a title?
+    "has_message",  # True/False - did this review have a message?
+    "message_length",  # how many characters long the message is
+    "response_time_hours",  # how many hours between review being written and answered
 ]
 
 
@@ -164,11 +164,13 @@ def clean_order_reviews(df: DataFrame) -> DataFrame:
     # Window + row_number() is Spark's way of saying:
     # "group rows by review_id, sort each group by answer time (newest
     # first), and number them 1, 2, 3... within the group"
-    window = Window.partitionBy("review_id").orderBy(F.col("review_answer_timestamp").desc())
+    window = Window.partitionBy("review_id").orderBy(
+        F.col("review_answer_timestamp").desc()
+    )
     df = (
         df.withColumn("_rn", F.row_number().over(window))  # add a row-number column
-        .filter(F.col("_rn") == 1)                          # keep only the #1 (newest) row per review_id
-        .drop("_rn")                                        # remove the helper column, we don't need it anymore
+        .filter(F.col("_rn") == 1)  # keep only the #1 (newest) row per review_id
+        .drop("_rn")  # remove the helper column, we don't need it anymore
     )
 
     # Step 8: add a few extra columns that make later analysis easier

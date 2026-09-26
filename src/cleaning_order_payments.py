@@ -32,21 +32,25 @@ REQUIRED_COLUMNS = [
 
 # Read the raw CSV as all-strings so malformed values become nulls during our
 # own explicit cast step, instead of Spark silently nulling or failing the read.
-RAW_SCHEMA = StructType([
-    StructField("order_id", StringType(), True),
-    StructField("payment_sequential", StringType(), True),
-    StructField("payment_type", StringType(), True),
-    StructField("payment_installments", StringType(), True),
-    StructField("payment_value", StringType(), True),
-])
+RAW_SCHEMA = StructType(
+    [
+        StructField("order_id", StringType(), True),
+        StructField("payment_sequential", StringType(), True),
+        StructField("payment_type", StringType(), True),
+        StructField("payment_installments", StringType(), True),
+        StructField("payment_value", StringType(), True),
+    ]
+)
 
-CLEAN_SCHEMA = StructType([
-    StructField("order_id", StringType(), True),
-    StructField("payment_sequential", IntegerType(), True),
-    StructField("payment_type", StringType(), True),
-    StructField("payment_installments", IntegerType(), True),
-    StructField("payment_value", DoubleType(), True),
-])
+CLEAN_SCHEMA = StructType(
+    [
+        StructField("order_id", StringType(), True),
+        StructField("payment_sequential", IntegerType(), True),
+        StructField("payment_type", StringType(), True),
+        StructField("payment_installments", IntegerType(), True),
+        StructField("payment_value", DoubleType(), True),
+    ]
+)
 
 
 def _standardize_columns(df: DataFrame) -> DataFrame:
@@ -86,10 +90,16 @@ def clean_order_payments(df: DataFrame) -> DataFrame:
 
     df = (
         df.withColumn("order_id", F.lower(F.trim(F.col("order_id").cast(StringType()))))
-          .withColumn("payment_type", F.lower(F.trim(F.col("payment_type").cast(StringType()))))
-          .withColumn("payment_sequential", F.col("payment_sequential").cast(IntegerType()))
-          .withColumn("payment_installments", F.col("payment_installments").cast(IntegerType()))
-          .withColumn("payment_value", F.col("payment_value").cast(DoubleType()))
+        .withColumn(
+            "payment_type", F.lower(F.trim(F.col("payment_type").cast(StringType())))
+        )
+        .withColumn(
+            "payment_sequential", F.col("payment_sequential").cast(IntegerType())
+        )
+        .withColumn(
+            "payment_installments", F.col("payment_installments").cast(IntegerType())
+        )
+        .withColumn("payment_value", F.col("payment_value").cast(DoubleType()))
     )
 
     df = df.na.drop(subset=REQUIRED_COLUMNS)
@@ -101,11 +111,13 @@ def clean_order_payments(df: DataFrame) -> DataFrame:
     # and keep row_number == 1 within each key.
     ordering_col = "__row_order__"
     df = df.withColumn(ordering_col, F.monotonically_increasing_id())
-    window = Window.partitionBy("order_id", "payment_sequential").orderBy(F.col(ordering_col).asc())
+    window = Window.partitionBy("order_id", "payment_sequential").orderBy(
+        F.col(ordering_col).asc()
+    )
     df = (
         df.withColumn("__rn__", F.row_number().over(window))
-          .filter(F.col("__rn__") == 1)
-          .drop("__rn__", ordering_col)
+        .filter(F.col("__rn__") == 1)
+        .drop("__rn__", ordering_col)
     )
 
     return df.select(*REQUIRED_COLUMNS)
@@ -114,8 +126,7 @@ def clean_order_payments(df: DataFrame) -> DataFrame:
 def read_raw_order_payments(spark: SparkSession, input_path: str) -> DataFrame:
     """Read the raw order_payments CSV using the all-string schema."""
     return (
-        spark.read
-        .option("header", "true")
+        spark.read.option("header", "true")
         .option("quote", '"')
         .option("escape", '"')
         .schema(RAW_SCHEMA)

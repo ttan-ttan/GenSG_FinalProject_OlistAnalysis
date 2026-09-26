@@ -77,7 +77,12 @@ def validate_order_payments(df: DataFrame, strict: bool = True) -> dict:
     missing = set(REQUIRED_COLUMNS) - set(df.columns)
     if missing:
         errors.append(f"Missing required column(s): {sorted(missing)}")
-        report = {"passed": False, "errors": errors, "warnings": warnings, "row_count": None}
+        report = {
+            "passed": False,
+            "errors": errors,
+            "warnings": warnings,
+            "row_count": None,
+        }
         if strict:
             raise ValidationError("; ".join(errors))
         return report
@@ -87,7 +92,8 @@ def validate_order_payments(df: DataFrame, strict: bool = True) -> dict:
     try:
         # one null-count agg per required column
         null_aggs = [
-            _count_where(F.col(c).isNull()).alias(f"null__{c}") for c in REQUIRED_COLUMNS
+            _count_where(F.col(c).isNull()).alias(f"null__{c}")
+            for c in REQUIRED_COLUMNS
         ]
 
         # all other row-level checks, computed in the same single pass
@@ -99,13 +105,17 @@ def validate_order_payments(df: DataFrame, strict: bool = True) -> dict:
             ).alias("bad_id_len"),
             _count_where(F.col("payment_sequential") < F.lit(1)).alias("bad_seq"),
             _count_where(F.col("payment_value") < F.lit(0)).alias("negative_value"),
-            _count_where(F.col("payment_installments") < F.lit(0)).alias("negative_installments"),
+            _count_where(F.col("payment_installments") < F.lit(0)).alias(
+                "negative_installments"
+            ),
             _count_where(
                 F.col("payment_type").isNotNull()
                 & ~F.col("payment_type").isin(VALID_PAYMENT_TYPES)
             ).alias("bad_type"),
             _count_where(F.col("payment_value") == F.lit(0)).alias("zero_value"),
-            _count_where(F.col("payment_installments") == F.lit(0)).alias("zero_installments"),
+            _count_where(F.col("payment_installments") == F.lit(0)).alias(
+                "zero_installments"
+            ),
         ]
 
         # run everything in ONE aggregation call (single scan of the data)
@@ -114,10 +124,10 @@ def validate_order_payments(df: DataFrame, strict: bool = True) -> dict:
         # duplicate (order_id, payment_sequential) pairs need a separate groupBy pass
         dup_row = (
             df.groupBy("order_id", "payment_sequential")
-              .agg(F.count(F.lit(1)).alias("n"))
-              .filter(F.col("n") > F.lit(1))
-              .agg(F.coalesce(F.sum("n"), F.lit(0)).alias("dup_rows"))
-              .collect()[0]
+            .agg(F.count(F.lit(1)).alias("n"))
+            .filter(F.col("n") > F.lit(1))
+            .agg(F.coalesce(F.sum("n"), F.lit(0)).alias("dup_rows"))
+            .collect()[0]
         )
         dup_rows = int(dup_row["dup_rows"])
 
@@ -139,7 +149,9 @@ def validate_order_payments(df: DataFrame, strict: bool = True) -> dict:
             errors.append(f"{int(stats['bad_seq'])} row(s) have payment_sequential < 1")
 
         if int(stats["negative_value"]) > 0:
-            errors.append(f"{int(stats['negative_value'])} row(s) have negative payment_value")
+            errors.append(
+                f"{int(stats['negative_value'])} row(s) have negative payment_value"
+            )
 
         if int(stats["negative_installments"]) > 0:
             errors.append(
@@ -172,7 +184,9 @@ def validate_order_payments(df: DataFrame, strict: bool = True) -> dict:
 
         # warnings — don't fail validation, just flag
         if int(stats["zero_value"]) > 0:
-            warnings.append(f"{int(stats['zero_value'])} row(s) have payment_value == 0")
+            warnings.append(
+                f"{int(stats['zero_value'])} row(s) have payment_value == 0"
+            )
 
         if int(stats["zero_installments"]) > 0:
             warnings.append(
@@ -182,7 +196,12 @@ def validate_order_payments(df: DataFrame, strict: bool = True) -> dict:
         df.unpersist()  # always release cache, even if something above raises
 
     passed = len(errors) == 0
-    report = {"passed": passed, "errors": errors, "warnings": warnings, "row_count": row_count}
+    report = {
+        "passed": passed,
+        "errors": errors,
+        "warnings": warnings,
+        "row_count": row_count,
+    }
 
     if strict and not passed:
         raise ValidationError("; ".join(errors))

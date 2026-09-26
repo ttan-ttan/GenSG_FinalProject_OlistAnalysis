@@ -5,19 +5,20 @@ import pytest
 from pyspark.sql.types import StringType, StructField, StructType
 
 # so tests can import from src/ regardless of where pytest is run from
-sys.path.append(os.path.abspath(os.path.join(
-    os.path.dirname(__file__), "..", "src")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
 from src.cleaning_order_payments import REQUIRED_COLUMNS, clean_order_payments
 
 # Raw input is all-strings, matching how the CSV is actually read.
-RAW_SCHEMA = StructType([
-    StructField("order_id", StringType(), True),
-    StructField("payment_sequential", StringType(), True),
-    StructField("payment_type", StringType(), True),
-    StructField("payment_installments", StringType(), True),
-    StructField("payment_value", StringType(), True),
-])
+RAW_SCHEMA = StructType(
+    [
+        StructField("order_id", StringType(), True),
+        StructField("payment_sequential", StringType(), True),
+        StructField("payment_type", StringType(), True),
+        StructField("payment_installments", StringType(), True),
+        StructField("payment_value", StringType(), True),
+    ]
+)
 
 # fixed 32-char fake IDs, reused across tests
 ID_A = "a" * 32
@@ -29,11 +30,11 @@ def make_raw_df(spark, rows=None):
     # default fixture covering the main cleaning cases in one go
     if rows is None:
         rows = [
-            (ID_A.upper(), "1", "CREDIT_CARD", "1", "10.0"),   # uppercase -> normalized
-            (ID_A, "1", "credit_card", "1", "10.0"),           # exact dup after normalizing
-            (ID_B, "1", " boleto ", "3", "50.5"),              # padded whitespace
-            (ID_C, "2", "voucher", "0", "0.0"),                # zero installments/value
-            (None, "1", "debit_card", "2", "20.0"),            # null key -> dropped
+            (ID_A.upper(), "1", "CREDIT_CARD", "1", "10.0"),  # uppercase -> normalized
+            (ID_A, "1", "credit_card", "1", "10.0"),  # exact dup after normalizing
+            (ID_B, "1", " boleto ", "3", "50.5"),  # padded whitespace
+            (ID_C, "2", "voucher", "0", "0.0"),  # zero installments/value
+            (None, "1", "debit_card", "2", "20.0"),  # null key -> dropped
         ]
     return spark.createDataFrame(rows, schema=RAW_SCHEMA)
 
@@ -57,7 +58,9 @@ def test_drops_rows_with_null_required_fields(spark):
     raw = make_raw_df(spark)
     result = clean_order_payments(raw)
     assert result.filter(result.order_id.isNull()).count() == 0
-    assert result.count() < raw.count()  # fewer rows than input confirms something was dropped
+    assert (
+        result.count() < raw.count()
+    )  # fewer rows than input confirms something was dropped
 
 
 def test_drops_exact_duplicate_rows(spark):
