@@ -6,7 +6,7 @@ for one scenario, runs validate_order_reviews() (or quarantine_invalid_rows()),
 and checks the result matches what we expect.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from pyspark.sql import Row
 from pyspark.sql import types as T
@@ -29,13 +29,13 @@ SCHEMA = T.StructType(
 def _row(**overrides):
     """Same helper idea as in the cleaning tests: sensible defaults,
     override only what the test cares about."""
-    base = dict(
-        review_id="r1",
-        order_id="o1",
-        review_score=5,
-        review_creation_date=datetime(2018, 1, 18, 0, 0, 0),
-        review_answer_timestamp=datetime(2018, 1, 18, 21, 46, 59),
-    )
+    base = {
+        "review_id": "r1",
+        "order_id": "o1",
+        "review_score": 5,
+        "review_creation_date": datetime(2018, 1, 18, 0, 0, 0, tzinfo=timezone.utc),
+        "review_answer_timestamp": datetime(2018, 1, 18, 21, 46, 59, tzinfo=timezone.utc),
+    }
     base.update(overrides)
     return Row(**base)
 
@@ -75,8 +75,8 @@ def test_reversed_timestamps_fail(spark):
     df = spark.createDataFrame(
         [
             _row(
-                review_creation_date=datetime(2018, 1, 20, 0, 0, 0),
-                review_answer_timestamp=datetime(2018, 1, 18, 0, 0, 0),
+                review_creation_date=datetime(2018, 1, 20, 0, 0, 0, tzinfo=timezone.utc),
+                review_answer_timestamp=datetime(2018, 1, 18, 0, 0, 0, tzinfo=timezone.utc),
             )
         ],
         schema=SCHEMA,
