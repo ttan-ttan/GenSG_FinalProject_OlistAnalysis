@@ -70,7 +70,3 @@ typing_extensions==4.16.0
 tzdata==2026.3
 urllib3==2.7.0
 zipp==4.1.0
-
-# Linting & Formatting
-ruff==0.6.0
-black==24.4.2
