@@ -65,12 +65,7 @@ def validate_orders(df):
         raise ValueError("customer_id contains null values")
 
     # Each row in the Orders dataset should represent one unique order.
-    dup_count = (
-        df.groupBy("order_id")
-        .count()
-        .filter(F.col("count") > 1)
-        .count()
-    )
+    dup_count = df.groupBy("order_id").count().filter(F.col("count") > 1).count()
 
     if dup_count > 0:
         raise ValueError("Duplicate order_id values detected")
@@ -88,9 +83,7 @@ def validate_orders(df):
         "approved",
     ]
 
-    invalid_statuses = df.filter(
-        ~F.col("order_status").isin(valid_statuses)
-    ).count()
+    invalid_statuses = df.filter(~F.col("order_status").isin(valid_statuses)).count()
 
     if invalid_statuses > 0:
         raise ValueError("Invalid order_status detected")
@@ -103,8 +96,6 @@ def validate_orders(df):
     ).count()
 
     if invalid_approval_time > 0:
-        raise ValueError(
-            "order_approved_at occurs before order_purchase_timestamp"
-        )
+        raise ValueError("order_approved_at occurs before order_purchase_timestamp")
 
     return df

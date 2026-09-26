@@ -76,24 +76,23 @@ def validate_order_items(df):
     )
 
     if dup_count > 0:
-        raise ValueError(
-            "Duplicate order_id and order_item_id combination detected"
-        )
+        raise ValueError("Duplicate order_id and order_item_id combination detected")
 
     if df.filter(F.col("order_item_id") <= 0).count() > 0:
         raise ValueError("Invalid order_item_id detected")
 
     # Scenario 2:
     # Zero or negative prices would distort sales and revenue analysis.
-    if df.filter(
-        F.col("price").isNull() | (F.col("price") <= 0)
-    ).count() > 0:
+    if df.filter(F.col("price").isNull() | (F.col("price") <= 0)).count() > 0:
         raise ValueError("Invalid price detected")
 
     # Freight cannot be negative, although zero freight may be valid.
-    if df.filter(
-        F.col("freight_value").isNull() | (F.col("freight_value") < 0)
-    ).count() > 0:
+    if (
+        df.filter(
+            F.col("freight_value").isNull() | (F.col("freight_value") < 0)
+        ).count()
+        > 0
+    ):
         raise ValueError("Invalid freight_value detected")
 
     if df.filter(F.col("shipping_limit_date").isNull()).count() > 0:

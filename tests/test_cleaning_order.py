@@ -1,11 +1,8 @@
-from pyspark.sql import SparkSession
-
 from src.cleaning_orders import clean_orders
 
 
 def test_clean_orders(spark):
     """Test cleaning logic for the Orders dataset."""
-
 
     # Create one fake Orders record
     data = [
@@ -45,25 +42,26 @@ def test_clean_orders(spark):
     assert row["order_status"] == "delivered"
 
     # Check that the date columns were converted to timestamps
-    assert str(
-        cleaned_df.schema["order_purchase_timestamp"].dataType
-    ) == "TimestampType()"
+    assert (
+        str(cleaned_df.schema["order_purchase_timestamp"].dataType) == "TimestampType()"
+    )
 
-    assert str(
-        cleaned_df.schema["order_approved_at"].dataType
-    ) == "TimestampType()"
+    assert str(cleaned_df.schema["order_approved_at"].dataType) == "TimestampType()"
 
-    assert str(
-        cleaned_df.schema["order_delivered_carrier_date"].dataType
-    ) == "TimestampType()"
+    assert (
+        str(cleaned_df.schema["order_delivered_carrier_date"].dataType)
+        == "TimestampType()"
+    )
 
-    assert str(
-        cleaned_df.schema["order_delivered_customer_date"].dataType
-    ) == "TimestampType()"
+    assert (
+        str(cleaned_df.schema["order_delivered_customer_date"].dataType)
+        == "TimestampType()"
+    )
 
-    assert str(
-        cleaned_df.schema["order_estimated_delivery_date"].dataType
-    ) == "TimestampType()"
+    assert (
+        str(cleaned_df.schema["order_estimated_delivery_date"].dataType)
+        == "TimestampType()"
+    )
 
     # Make sure cleaning did not remove the row
     assert cleaned_df.count() == 1

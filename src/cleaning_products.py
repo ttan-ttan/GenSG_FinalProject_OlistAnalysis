@@ -53,7 +53,12 @@ INT_COLS = [
     "product_width_cm",
 ]
 
-DIM_COLS = ["product_weight_g", "product_length_cm", "product_height_cm", "product_width_cm"]
+DIM_COLS = [
+    "product_weight_g",
+    "product_length_cm",
+    "product_height_cm",
+    "product_width_cm",
+]
 SIZE_COLS = ["product_length_cm", "product_height_cm", "product_width_cm"]
 
 UNKNOWN_CATEGORY = "unknown"
@@ -117,9 +122,9 @@ def cast_types(df: DataFrame) -> DataFrame:
 
 
 def standardise_text(df: DataFrame) -> DataFrame:
-    return (df
-            .withColumn("product_id", _clean_str("product_id"))
-            .withColumn("product_category_name", F.lower(_clean_str("product_category_name"))))
+    return df.withColumn("product_id", _clean_str("product_id")).withColumn(
+        "product_category_name", F.lower(_clean_str("product_category_name"))
+    )
 
 
 def drop_exact_duplicates(df: DataFrame) -> DataFrame:
@@ -129,11 +134,14 @@ def drop_exact_duplicates(df: DataFrame) -> DataFrame:
 
 def flag_and_fill(df: DataFrame) -> DataFrame:
     """Flag BEFORE filling so original nullness is preserved."""
-    return (df
-            .withColumn("is_category_missing", F.col("product_category_name").isNull())
-            .withColumn("product_category_name",
-                        F.coalesce("product_category_name", F.lit(UNKNOWN_CATEGORY)))
-            .withColumn("is_dims_missing", _any([F.col(c).isNull() for c in DIM_COLS])))
+    return (
+        df.withColumn("is_category_missing", F.col("product_category_name").isNull())
+        .withColumn(
+            "product_category_name",
+            F.coalesce("product_category_name", F.lit(UNKNOWN_CATEGORY)),
+        )
+        .withColumn("is_dims_missing", _any([F.col(c).isNull() for c in DIM_COLS]))
+    )
 
 
 def add_derived(df: DataFrame) -> DataFrame:
@@ -150,20 +158,28 @@ def clean_translation(translation: DataFrame) -> DataFrame:
     translation = _strip_bom_and_whitespace(translation)
     _check_required_columns(translation, TRANSLATION_COLUMNS, "translation")
 
-    return (translation
-                .select(*TRANSLATION_COLUMNS)
-                .withColumn("product_category_name", F.lower(_clean_str("product_category_name")))
-                .withColumn("product_category_name_english",
-                            F.lower(_clean_str("product_category_name_english")))
-                .dropna(subset=TRANSLATION_COLUMNS)
-                .dropDuplicates(["product_category_name"]))
+    return (
+        translation.select(*TRANSLATION_COLUMNS)
+        .withColumn(
+            "product_category_name", F.lower(_clean_str("product_category_name"))
+        )
+        .withColumn(
+            "product_category_name_english",
+            F.lower(_clean_str("product_category_name_english")),
+        )
+        .dropna(subset=TRANSLATION_COLUMNS)
+        .dropDuplicates(["product_category_name"])
+    )
 
 
 def add_english_category(df: DataFrame, translation: DataFrame) -> DataFrame:
     """Unmatched -> "unknown". Validation fails if a NEW category lands here."""
-    return (df.join(F.broadcast(translation), "product_category_name", "left")
-              .withColumn("product_category_name_english",
-                          F.coalesce("product_category_name_english", F.lit(UNKNOWN_CATEGORY))))
+    return df.join(
+        F.broadcast(translation), "product_category_name", "left"
+    ).withColumn(
+        "product_category_name_english",
+        F.coalesce("product_category_name_english", F.lit(UNKNOWN_CATEGORY)),
+    )
 
 
 def add_metadata(df: DataFrame) -> DataFrame:
@@ -178,15 +194,17 @@ def clean_products(products: DataFrame, translation: DataFrame) -> DataFrame:
 
     translation_clean = clean_translation(translation)
 
-    return (products
-            .select(*SOURCE_COLUMNS)  # drop bronze metadata so exact-dup check works
-            .transform(rename_columns)
-            .transform(cast_types)
-            .transform(standardise_text)
-            .transform(drop_exact_duplicates)
-            .transform(flag_and_fill)
-            .transform(add_derived)
-            .transform(lambda d: add_english_category(d, translation_clean))
-            .transform(add_metadata)
-            .select(*OUTPUT_COLUMNS))
-
+    return (
+        products.select(
+            *SOURCE_COLUMNS
+        )  # drop bronze metadata so exact-dup check works
+        .transform(rename_columns)
+        .transform(cast_types)
+        .transform(standardise_text)
+        .transform(drop_exact_duplicates)
+        .transform(flag_and_fill)
+        .transform(add_derived)
+        .transform(lambda d: add_english_category(d, translation_clean))
+        .transform(add_metadata)
+        .select(*OUTPUT_COLUMNS)
+    )

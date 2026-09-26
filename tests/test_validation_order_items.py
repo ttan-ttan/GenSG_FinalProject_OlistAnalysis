@@ -19,12 +19,11 @@ def test_validate_order_items_valid(spark):
             "shipping_limit_date",
             "price",
             "freight_value",
-        ]
+        ],
     )
 
     df = df.withColumn(
-        "shipping_limit_date",
-        df["shipping_limit_date"].cast("timestamp")
+        "shipping_limit_date", df["shipping_limit_date"].cast("timestamp")
     )
 
     validated = validate_order_items(df)
@@ -48,12 +47,11 @@ def test_validate_order_items_duplicate_combination(spark):
             "shipping_limit_date",
             "price",
             "freight_value",
-        ]
+        ],
     )
 
     df = df.withColumn(
-        "shipping_limit_date",
-        df["shipping_limit_date"].cast("timestamp")
+        "shipping_limit_date", df["shipping_limit_date"].cast("timestamp")
     )
 
     with pytest.raises(ValueError):
@@ -75,12 +73,11 @@ def test_validate_order_items_invalid_price(spark):
             "shipping_limit_date",
             "price",
             "freight_value",
-        ]
+        ],
     )
 
     df = df.withColumn(
-        "shipping_limit_date",
-        df["shipping_limit_date"].cast("timestamp")
+        "shipping_limit_date", df["shipping_limit_date"].cast("timestamp")
     )
 
     with pytest.raises(ValueError):
@@ -102,12 +99,11 @@ def test_validate_order_items_negative_freight(spark):
             "shipping_limit_date",
             "price",
             "freight_value",
-        ]
+        ],
     )
 
     df = df.withColumn(
-        "shipping_limit_date",
-        df["shipping_limit_date"].cast("timestamp")
+        "shipping_limit_date", df["shipping_limit_date"].cast("timestamp")
     )
 
     with pytest.raises(ValueError):

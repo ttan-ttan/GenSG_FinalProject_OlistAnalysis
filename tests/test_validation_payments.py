@@ -10,13 +10,15 @@ from pyspark.sql.types import (
 from src.validation_payments import ValidationError, validate_order_payments
 
 # tests feed already-clean/typed data, since validate_order_payments expects that
-CLEAN_SCHEMA = StructType([
-    StructField("order_id", StringType(), True),
-    StructField("payment_sequential", IntegerType(), True),
-    StructField("payment_type", StringType(), True),
-    StructField("payment_installments", IntegerType(), True),
-    StructField("payment_value", DoubleType(), True),
-])
+CLEAN_SCHEMA = StructType(
+    [
+        StructField("order_id", StringType(), True),
+        StructField("payment_sequential", IntegerType(), True),
+        StructField("payment_type", StringType(), True),
+        StructField("payment_installments", IntegerType(), True),
+        StructField("payment_value", DoubleType(), True),
+    ]
+)
 
 # fixed 32-char fake IDs, reused across tests
 ID_A = "a" * 32
