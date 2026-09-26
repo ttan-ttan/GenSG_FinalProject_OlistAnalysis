@@ -12,7 +12,10 @@ CLEANED data (as a final safety check that cleaning worked properly).
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field   # dataclass = an easy way to define a simple "data holder" class
+from dataclasses import (  # dataclass = an easy way to define a simple "data holder" class
+    dataclass,
+    field,
+)
 
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F

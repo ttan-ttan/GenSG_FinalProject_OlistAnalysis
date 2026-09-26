@@ -3,6 +3,7 @@ Upload local src/ folder to Fabric OneLake Files/src using REST API.
 """
 
 import os
+
 import requests
 
 FABRIC_WORKSPACE_ID = os.getenv("FABRIC_WORKSPACE_ID")

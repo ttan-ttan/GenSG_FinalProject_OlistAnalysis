@@ -19,10 +19,12 @@ Covers:
     5. Basic formatting cleanup
 """
 
-from src.cleaning_sellers import clean_sellers
-import pytest
-import sys
 import os
+import sys
+
+import pytest
+
+from src.cleaning_sellers import clean_sellers
 
 # Add src to PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))

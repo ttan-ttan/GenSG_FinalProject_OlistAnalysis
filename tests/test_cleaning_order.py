@@ -1,4 +1,3 @@
-from pyspark.sql import SparkSession
 
 from src.cleaning_orders import clean_orders
 

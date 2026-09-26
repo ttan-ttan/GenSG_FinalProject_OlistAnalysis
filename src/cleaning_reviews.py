@@ -18,9 +18,16 @@ from __future__ import annotations
 import logging
 from typing import Final
 
-from pyspark.sql import DataFrame, Window       # DataFrame = the table object, Window = used for "per group" logic
-from pyspark.sql import functions as F           # F = shortcut for Spark's built-in column functions
-from pyspark.sql import types as T               # T = shortcut for Spark's data types (Integer, Timestamp, etc.)
+from pyspark.sql import (  # DataFrame = the table object, Window = used for "per group" logic
+    DataFrame,
+    Window,
+)
+from pyspark.sql import (
+    functions as F,  # F = shortcut for Spark's built-in column functions
+)
+from pyspark.sql import (
+    types as T,  # T = shortcut for Spark's data types (Integer, Timestamp, etc.)
+)
 
 # logger lets us print progress/info messages instead of using print()
 logger = logging.getLogger(__name__)
