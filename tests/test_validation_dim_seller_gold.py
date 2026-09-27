@@ -1,8 +1,9 @@
 """Tests for Gold seller dimension validation."""
 
 import pytest
-from src.validation_dim_seller_gold import validate_dim_seller_gold
 from pyspark.sql.types import IntegerType, StringType, StructField, StructType
+
+from src.validation_dim_seller_gold import validate_dim_seller_gold
 
 
 def test_gold_valid(spark):

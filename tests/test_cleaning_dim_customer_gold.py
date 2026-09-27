@@ -2,7 +2,6 @@
 
 from src.cleaning_dim_customer_gold import clean_customers_gold
 
-
 CUSTOMER_COLUMNS = [
     "customer_id",
     "customer_city",

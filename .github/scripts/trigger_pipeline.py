@@ -3,6 +3,7 @@ Trigger a Fabric pipeline using REST API.
 """
 
 import os
+
 import msal
 import requests
 

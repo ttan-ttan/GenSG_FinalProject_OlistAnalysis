@@ -24,10 +24,12 @@ Notes:
 # pylint: disable=unused-import
 # pylint: disable=no-member
 
-from src.cleaning_customers import clean_customers
-import pytest
-import sys
 import os
+import sys
+
+import pytest
+
+from src.cleaning_customers import clean_customers
 
 # Add src to PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))

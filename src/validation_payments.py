@@ -31,12 +31,12 @@ class ValidationError(Exception):
     """Raised when the DataFrame fails a critical check and strict=True."""
 
 
-def _flag(condition) -> "F.Column":
+def _flag(condition) -> F.Column:
     """1 when the condition is true, 0 when it is false OR null."""
     return F.when(condition, F.lit(1)).otherwise(F.lit(0))
 
 
-def _count_where(condition) -> "F.Column":
+def _count_where(condition) -> F.Column:
     """
     Sum of the flag, coalesced to 0.
 

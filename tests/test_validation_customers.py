@@ -6,11 +6,13 @@
 Test Suite: Validation Logic for Customers Dataset
 """
 
-from src.validation_customers import validate_customers
-from pyspark.sql.types import IntegerType, StringType, StructField, StructType
-import pytest
-import sys
 import os
+import sys
+
+import pytest
+from pyspark.sql.types import IntegerType, StringType, StructField, StructType
+
+from src.validation_customers import validate_customers
 
 # Add src folder to Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
