@@ -13,7 +13,8 @@ CLIENT_ID = os.environ["CLIENT_ID"]
 CLIENT_SECRET = os.environ["CLIENT_SECRET"]
 WORKSPACE_ID = os.environ["FABRIC_WORKSPACE_ID"]
 NOTEBOOK_ID = os.environ["FABRIC_NOTEBOOK_ID"]
-NOTEBOOK_PATH = Path("notebooks/Trigger_Notebook.notebook/notebook-content.json")
+NOTEBOOK_PATH = Path(
+    "notebooks/trigger_pipeline.notebook/notebook-content.json")
 
 
 def get_access_token():
