@@ -9,14 +9,14 @@ from pyspark.sql import functions as F
 from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 
 from src.cleaning_products import OUTPUT_COLUMNS
-from src.validation_products import KNOWN_UNTRANSLATED, validate_products
+from src.validation_products import validate_products
 
 PID_1 = "1e9e8ef04dbcff4541ed26657ea517e5"
 PID_2 = "3aa071139cb16b67ca9e5dea641aaa2f"
 
 SILVER_SCHEMA = StructType(
     [
-        StructField(c, StringType() if i < 3 else IntegerType(), True)
+        StructField(c, StringType() if i < 2 else IntegerType(), True)
         for i, c in enumerate(OUTPUT_COLUMNS)
     ]
 )
@@ -26,7 +26,6 @@ def _row(**overrides):
     base = {
         "product_id": PID_1,
         "product_category_name": "perfumaria",
-        "product_category_name_english": "perfumery",
         "product_name_length": 40,
         "product_description_length": 287,
         "product_photos_qty": 1,
@@ -56,6 +55,11 @@ def test_returns_df_unchanged(spark):
     assert out.collect() == df.collect()
 
 
+def test_multi_word_category_passes(spark):
+    df = _df(spark, [_row(product_category_name="cama mesa banho")])
+    assert validate_products(df).count() == 1
+
+
 def test_missing_category_row_passes(spark):
     """category + text metadata missing -> all NULL."""
     df = _df(
@@ -63,7 +67,6 @@ def test_missing_category_row_passes(spark):
         [
             _row(
                 product_category_name=None,
-                product_category_name_english=None,
                 product_name_length=None,
                 product_description_length=None,
                 product_photos_qty=None,
@@ -73,12 +76,9 @@ def test_missing_category_row_passes(spark):
     assert validate_products(df).count() == 1
 
 
-@pytest.mark.parametrize("category", sorted(KNOWN_UNTRANSLATED))
-def test_known_untranslated_row_passes(spark, category):
-    df = _df(
-        spark,
-        [_row(product_category_name=category, product_category_name_english=None)],
-    )
+def test_untranslated_category_passes_in_silver(spark):
+    """Translation is checked in Gold, not here."""
+    df = _df(spark, [_row(product_category_name="pc gamer")])
     assert validate_products(df).count() == 1
 
 
@@ -109,7 +109,7 @@ def test_extra_column_allowed(spark):
 
 # Schema
 def test_missing_column_raises(spark):
-    df = _df(spark, [_row()]).drop("product_category_name_english")
+    df = _df(spark, [_row()]).drop("product_category_name")
     with pytest.raises(ValueError, match="missing column"):
         validate_products(df)
 
@@ -131,19 +131,10 @@ def test_missing_column_raises(spark):
             "product_category_name not normalised",
         ),
         (
-            {"product_category_name_english": "Perfumery"},
-            "product_category_name_english not normalised",
+            {"product_category_name": "cama_mesa_banho"},
+            "product_category_name not normalised",
         ),
-        ({"product_category_name": ""}, "product_category_name is blank"),
-        (
-            {"product_category_name_english": ""},
-            "product_category_name_english is blank",
-        ),
-        ({"product_category_name_english": None}, "new untranslated category"),
-        (
-            {"product_category_name": None},
-            "english category without native category",
-        ),
+        ({"product_category_name": ""}, "product_category_name not normalised"),
         ({"product_weight_g": -1}, "product_weight_g negative"),
         ({"product_length_cm": 0}, "product_length_cm not positive"),
         ({"product_height_cm": -5}, "product_height_cm not positive"),

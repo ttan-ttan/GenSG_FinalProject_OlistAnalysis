@@ -1,13 +1,13 @@
 """
 Silver-layer cleaning for the products dataset
-
-Casts types, fixes source column typos, normalises text and attaches the
-English category name from product_category_name_translation.
+Casts types, fixes source column typos and normalises text.
 
 Rules:
-    - Missing category -> stays NULL in both languages.
-    - Categories with no translation (pc_gamer,
-      portateis_cozinha_e_preparadores_de_alimentos) -> English NULL.
+    - product_category_name uses the same key format as
+      clean_category_translation (cleaning_Validate_product_category):
+      trim -> lowercase -> "_"/"-" runs become one space
+      ("cama_mesa_banho" -> "cama mesa banho"), so the Gold join matches.
+    - Missing category -> stays NULL.
     - Only exact duplicate rows are dropped. Conflicting rows sharing a
       product_id are left for validation to reject.
 """
@@ -34,8 +34,6 @@ SOURCE_COLUMNS = [
     "product_width_cm",
 ]
 
-TRANSLATION_COLUMNS = ["product_category_name", "product_category_name_english"]
-
 INT_COLS = [
     "product_name_length",
     "product_description_length",
@@ -49,7 +47,6 @@ INT_COLS = [
 OUTPUT_COLUMNS = [
     "product_id",
     "product_category_name",
-    "product_category_name_english",
     "product_name_length",
     "product_description_length",
     "product_photos_qty",
@@ -62,7 +59,7 @@ OUTPUT_COLUMNS = [
 
 # Helpers
 def _strip_bom_and_whitespace(df: DataFrame) -> DataFrame:
-    """Clean header names; the translation CSV header carries a UTF-8 BOM."""
+    """Clean header names (guards against a UTF-8 BOM / stray spaces)."""
     return df.toDF(*[c.replace("﻿", "").strip() for c in df.columns])
 
 
@@ -76,6 +73,16 @@ def _clean_str(col_name: str) -> Column:
     """Trim; empty string -> null."""
     trimmed = F.trim(F.col(col_name).cast(StringType()))
     return F.when(trimmed == "", F.lit(None)).otherwise(trimmed)
+
+
+def normalise_category(col_name: str) -> Column:
+    """Mirror of the translation key format; blank -> NULL.
+
+    Must stay identical to clean_category_translation, otherwise the Gold
+    join silently returns NULL English categories.
+    """
+    trimmed = F.lower(_clean_str(col_name))
+    return F.regexp_replace(trimmed, r"[_\-]+", " ")
 
 
 # Products transformations
@@ -94,7 +101,7 @@ def cast_types(df: DataFrame) -> DataFrame:
 
 def standardise_text(df: DataFrame) -> DataFrame:
     return df.withColumn("product_id", _clean_str("product_id")).withColumn(
-        "product_category_name", F.lower(_clean_str("product_category_name"))
+        "product_category_name", normalise_category("product_category_name")
     )
 
 
@@ -103,38 +110,11 @@ def drop_exact_duplicates(df: DataFrame) -> DataFrame:
     return df.dropDuplicates()
 
 
-# Translation
-def clean_translation(translation: DataFrame) -> DataFrame:
-    """Normalise the translation table: trim, lowercase, drop nulls, one row per category."""
-    translation = _strip_bom_and_whitespace(translation)
-    _check_required_columns(translation, TRANSLATION_COLUMNS, "translation")
-
-    return (
-        translation.select(*TRANSLATION_COLUMNS)
-        .withColumn(
-            "product_category_name", F.lower(_clean_str("product_category_name"))
-        )
-        .withColumn(
-            "product_category_name_english",
-            F.lower(_clean_str("product_category_name_english")),
-        )
-        .dropna(subset=TRANSLATION_COLUMNS)
-        .dropDuplicates(["product_category_name"])
-    )
-
-
-def add_english_category(df: DataFrame, translation: DataFrame) -> DataFrame:
-    """Left join. No match -> English NULL."""
-    return df.join(F.broadcast(translation), "product_category_name", "left")
-
-
 # Entry point
-def clean_products(products: DataFrame, translation: DataFrame) -> DataFrame:
-    """Bronze products + translation -> Silver products."""
+def clean_products(products: DataFrame) -> DataFrame:
+    """Bronze products -> Silver products."""
     products = _strip_bom_and_whitespace(products)
     _check_required_columns(products, SOURCE_COLUMNS, "products")
-
-    translation_clean = clean_translation(translation)
 
     return (
         products.select(*SOURCE_COLUMNS)
@@ -142,6 +122,5 @@ def clean_products(products: DataFrame, translation: DataFrame) -> DataFrame:
         .transform(cast_types)
         .transform(standardise_text)
         .transform(drop_exact_duplicates)
-        .transform(lambda d: add_english_category(d, translation_clean))
         .select(*OUTPUT_COLUMNS)
     )

@@ -2,9 +2,11 @@
 Silver-layer validation for the products dataset.
 Ensures structural and domain correctness before Gold processing.
 
+Translation checks (untranslated categories) live in Gold:
+validation_dim_product_gold.
+
 Allowed by design:
-    - product_category_name NULL -> English NULL too.
-    - Known untranslated categories -> English NULL.
+    - product_category_name NULL.
     - Null dimensions / text metadata (kept, not filled).
     - product_weight_g == 0.
 """
@@ -12,17 +14,15 @@ Allowed by design:
 import pyspark.sql.functions as F
 from pyspark.sql import Column, DataFrame
 
-from src.cleaning_products import OUTPUT_COLUMNS
+try:  # repo / pytest
+    from src.cleaning_products import OUTPUT_COLUMNS, normalise_category
+except ModuleNotFoundError:  # Fabric: Files/src on sys.path
+    from cleaning_products import OUTPUT_COLUMNS, normalise_category
 
 PRODUCT_ID_PATTERN = r"^[0-9a-f]{32}$"
 
-# Categories with no row in product_category_name_translation.
-# English NULL is expected for these; any OTHER untranslated category fails.
-KNOWN_UNTRANSLATED = {"pc_gamer", "portateis_cozinha_e_preparadores_de_alimentos"}
-
 NOT_NULL_COLS = ["product_id"]
 
-TEXT_COLS = ["product_category_name", "product_category_name_english"]
 DIM_COLS = ["product_length_cm", "product_height_cm", "product_width_cm"]
 POSITIVE_COLS = ["product_name_length", "product_description_length", *DIM_COLS]
 
@@ -41,20 +41,12 @@ def _row_rules() -> dict:
         PRODUCT_ID_PATTERN
     )
 
-    # Standardisation: text must already be trimmed + lowercase, no blanks
-    for c in TEXT_COLS:
-        rules[f"{c} not normalised"] = col(c) != F.lower(F.trim(col(c)))
-        rules[f"{c} is blank"] = col(c) == ""
-
-    # English NULL only for missing or known-untranslated categories
-    rules["new untranslated category"] = (
-        col("product_category_name_english").isNull()
-        & col("product_category_name").isNotNull()
-        & ~col("product_category_name").isin(*KNOWN_UNTRANSLATED)
-    )
-    rules["english category without native category"] = (
-        col("product_category_name").isNull()
-        & col("product_category_name_english").isNotNull()
+    # Category must already be in the shared format (matches translation key).
+    # Blank strings also fail here: normalise_category turns them into NULL.
+    rules["product_category_name not normalised"] = col(
+        "product_category_name"
+    ).isNotNull() & ~col("product_category_name").eqNullSafe(
+        normalise_category("product_category_name")
     )
 
     # Basic integrity: weight 0 allowed, negative not
