@@ -1,242 +1,113 @@
-"""
-validation_reviews.py
+# validation_reviews.py
+# Checks that the reviews data is clean. Each check returns pass/fail plus a detail message.
 
-This file does NOT change any data. It only CHECKS data and reports
-problems. Think of cleaning_reviews.py as "fix it" and this file as
-"check it" - keeping them separate makes each one easier to test and
-reason about on its own.
-
-You can run this on the RAW data (to see how messy it is) or on the
-CLEANED data (as a final safety check that cleaning worked properly).
-"""
-
-from __future__ import annotations
-
-from dataclasses import (  # dataclass = an easy way to define a simple "data holder" class
-    dataclass,
-    field,
-)
-
+from pathlib import Path
+from typing import List, Optional
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
-# columns that MUST exist for validation to even be possible
-REQUIRED_COLUMNS: list[str] = [
-    "review_id",
-    "order_id",
-    "review_score",
-    "review_creation_date",
-    "review_answer_timestamp",
+REQUIRED_COLUMNS = [
+    "review_id", "order_id", "review_score", "review_comment_title",
+    "review_comment_message", "review_creation_date", "review_answer_timestamp",
 ]
-
-# business rule: review_score must be a whole number from 1 to 5
-MIN_SCORE = 1
-MAX_SCORE = 5
+KEY_COLUMNS = ["review_id", "order_id", "review_score", "review_creation_date", "review_answer_timestamp"]
 
 
-@dataclass
-class ValidationResult:
-    """
-    A simple container that holds the outcome of running all our checks.
-
-    passed   -> True if there were no hard errors
-    row_count -> how many rows were checked
-    errors   -> list of problems that make the data UNUSABLE
-    warnings -> list of problems that are worth knowing about but don't
-                block usage (e.g. duplicate review_id, which cleaning fixes)
-    metrics  -> raw numbers behind each check, useful for logging/debugging
-    """
-
-    passed: bool
-    row_count: int
-    errors: list[str] = field(default_factory=list)
-    warnings: list[str] = field(default_factory=list)
-    metrics: dict = field(default_factory=dict)
-
-    def raise_if_failed(self) -> None:
-        """Convenience method: call this if you want validation failure to
-        stop your pipeline immediately with a Python exception."""
-        if not self.passed:
-            raise ValueError(
-                "order_reviews validation failed: " + "; ".join(self.errors)
-            )
+def _result(name: str, passed: bool, detail: str = "") -> dict:
+    """Small helper that builds one check result."""
+    return {"check": name, "passed": bool(passed), "detail": detail}
 
 
-def _check_required_columns(df: DataFrame, errors: list[str]) -> bool:
-    """Look for any column we need but don't have. Returns False if
-    something's missing (and records the problem in `errors`)."""
+def validate_reviews(
+    df: DataFrame,
+    orders_df: Optional[DataFrame] = None,
+    expect_one_review_per_order: bool = False,
+) -> List[dict]:
+    """Run all checks on the reviews table."""
+    results = []
+
+    # 1. All expected columns must exist
     missing = [c for c in REQUIRED_COLUMNS if c not in df.columns]
+    results.append(_result("required_columns_present", not missing, f"missing: {missing}"))
     if missing:
-        errors.append(f"missing required column(s): {missing}")
-        return False
-    return True
+        return results
 
+    # 2. Date columns must be real timestamps, and the score must be an integer
+    types = dict(df.dtypes)
+    results.append(_result("creation_date_is_timestamp", types["review_creation_date"] == "timestamp", types["review_creation_date"]))
+    results.append(_result("answer_timestamp_is_timestamp", types["review_answer_timestamp"] == "timestamp", types["review_answer_timestamp"]))
+    results.append(_result("score_is_int", types["review_score"] == "int", types["review_score"]))
 
-def validate_order_reviews(df: DataFrame) -> ValidationResult:
-    """
-    Runs every check we care about on the given DataFrame and returns a
-    single ValidationResult summarising everything.
-    """
-    errors: list[str] = []
-    warnings: list[str] = []
-    metrics: dict = {}
+    # 3. Key columns must not contain nulls
+    null_rows = df.filter(" OR ".join(f"{c} IS NULL" for c in KEY_COLUMNS)).count()
+    results.append(_result("no_nulls_in_key_columns", null_rows == 0, f"rows with nulls: {null_rows}"))
 
-    row_count = df.count()
-    metrics["row_count"] = row_count
-
-    # if columns are missing, there's no point running the rest of the
-    # checks - Spark would just crash on a column that doesn't exist
-    if not _check_required_columns(df, errors):
-        return ValidationResult(
-            passed=False,
-            row_count=row_count,
-            errors=errors,
-            warnings=warnings,
-            metrics=metrics,
-        )
-
-    if row_count == 0:
-        errors.append("DataFrame is empty")
-
-    # --- CHECK 1: are any of our key columns null? ------------------------
-    # .filter(...isNull()).count() = "count how many rows have a null here"
-    null_review_id = df.filter(F.col("review_id").isNull()).count()
-    null_order_id = df.filter(F.col("order_id").isNull()).count()
-    null_score = df.filter(F.col("review_score").isNull()).count()
-    null_creation = df.filter(F.col("review_creation_date").isNull()).count()
-    null_answer = df.filter(F.col("review_answer_timestamp").isNull()).count()
-
-    # save these numbers so anyone reading the result can see the raw counts
-    metrics.update(
-        {
-            "null_review_id": null_review_id,
-            "null_order_id": null_order_id,
-            "null_review_score": null_score,
-            "null_review_creation_date": null_creation,
-            "null_review_answer_timestamp": null_answer,
-        }
-    )
-
-    # turn any non-zero count into a human-readable error message
-    if null_review_id:
-        errors.append(f"{null_review_id} row(s) with null review_id")
-    if null_order_id:
-        errors.append(f"{null_order_id} row(s) with null order_id")
-    if null_score:
-        errors.append(f"{null_score} row(s) with null review_score")
-    if null_creation:
-        errors.append(f"{null_creation} row(s) with null review_creation_date")
-    if null_answer:
-        errors.append(f"{null_answer} row(s) with null review_answer_timestamp")
-
-    # --- CHECK 2: is review_score always between 1 and 5? -----------------
-    out_of_range = df.filter(
-        F.col("review_score").isNotNull()
-        & ~F.col("review_score").between(MIN_SCORE, MAX_SCORE)
+    # 4. Comments must be filled (placeholders), never null or empty
+    empty_comments = df.filter(
+        F.col("review_comment_title").isNull() | (F.col("review_comment_title") == "")
+        | F.col("review_comment_message").isNull() | (F.col("review_comment_message") == "")
     ).count()
-    metrics["review_score_out_of_range"] = out_of_range
-    if out_of_range:
-        errors.append(
-            f"{out_of_range} row(s) with review_score outside [{MIN_SCORE}, {MAX_SCORE}]"
-        )
+    results.append(_result("comments_filled", empty_comments == 0, f"empty comments: {empty_comments}"))
 
-    # --- CHECK 3: was any review "answered" before it was even created? ---
-    # this would mean bad/corrupted data, so we treat it as an error
-    reversed_timestamps = df.filter(
-        F.col("review_creation_date").isNotNull()
-        & F.col("review_answer_timestamp").isNotNull()
-        & (F.col("review_answer_timestamp") < F.col("review_creation_date"))
+    # 5. Scores must be between 1 and 5
+    bad_scores = df.filter(~F.col("review_score").between(1, 5)).count()
+    results.append(_result("score_between_1_and_5", bad_scores == 0, f"bad scores: {bad_scores}"))
+
+    # 6. (review_id, order_id) must be unique
+    dup_keys = df.groupBy("review_id", "order_id").count().filter("count > 1").count()
+    results.append(_result("review_order_key_unique", dup_keys == 0, f"duplicate keys: {dup_keys}"))
+
+    # 7. Answer time must not be before creation time
+    bad_dates = df.filter(F.col("review_answer_timestamp") < F.col("review_creation_date")).count()
+    results.append(_result("answer_after_creation", bad_dates == 0, f"rows answered before created: {bad_dates}"))
+
+    # 8. No line breaks left inside comments
+    newline_rows = df.filter(
+        F.col("review_comment_title").rlike("[\r\n]") | F.col("review_comment_message").rlike("[\r\n]")
     ).count()
-    metrics["review_answer_before_creation"] = reversed_timestamps
-    if reversed_timestamps:
-        errors.append(
-            f"{reversed_timestamps} row(s) where review_answer_timestamp is "
-            "earlier than review_creation_date"
+    results.append(_result("no_line_breaks_in_comments", newline_rows == 0, f"rows with line breaks: {newline_rows}"))
+
+    # 9. (optional) only one review per order, if we asked for that
+    if expect_one_review_per_order:
+        multi = df.groupBy("order_id").count().filter("count > 1").count()
+        results.append(_result("one_review_per_order", multi == 0, f"orders with >1 review: {multi}"))
+
+    # 10. (optional) every order_id should exist in the orders table
+    if orders_df is not None:
+        orphans = (
+            df.select("order_id").distinct()
+            .join(orders_df.select("order_id").distinct(), on="order_id", how="left_anti")
+            .count()
         )
+        results.append(_result("order_ids_exist_in_orders", orphans == 0, f"orphan order_ids: {orphans}"))
 
-    # --- CHECK 4: does review_id repeat? (warning, not an error) ----------
-    # groupBy + count() tells us how many times each review_id appears.
-    # We then count how many review_id GROUPS have more than 1 row.
-    duplicate_review_ids = (
-        df.filter(F.col("review_id").isNotNull())
-        .groupBy("review_id")
-        .count()
-        .filter(F.col("count") > 1)
-        .count()
-    )
-    metrics["duplicate_review_id_groups"] = duplicate_review_ids
-    if duplicate_review_ids:
-        # this is only a WARNING, not an error, because cleaning_reviews.py
-        # already knows how to fix this (keeps the newest one)
-        warnings.append(
-            f"{duplicate_review_ids} review_id value(s) appear more than once - "
-            "run clean_order_reviews to de-duplicate before downstream use"
-        )
-
-    # passed = True only if we found zero errors (warnings are OK)
-    passed = len(errors) == 0
-    return ValidationResult(
-        passed=passed,
-        row_count=row_count,
-        errors=errors,
-        warnings=warnings,
-        metrics=metrics,
-    )
+    return results
 
 
-def quarantine_invalid_rows(df: DataFrame) -> DataFrame:
-    """
-    Instead of just counting problems, this function actually RETURNS the
-    bad rows, each tagged with a `validation_reason` column explaining why
-    it's bad. Useful if you want to eyeball the actual broken records.
+def all_passed(results: List[dict]) -> bool:
+    """True only if every check passed."""
+    return all(r["passed"] for r in results)
 
-    Note: a row that breaks more than one rule will show up more than
-    once (once per rule it breaks).
-    """
-    # each entry is a (condition, reason_text) pair
-    reasons = []
 
-    if "review_id" in df.columns:
-        reasons.append((F.col("review_id").isNull(), "null review_id"))
-    if "order_id" in df.columns:
-        reasons.append((F.col("order_id").isNull(), "null order_id"))
-    if "review_score" in df.columns:
-        reasons.append(
-            (
-                F.col("review_score").isNull()
-                | ~F.col("review_score").between(MIN_SCORE, MAX_SCORE),
-                "invalid review_score",
-            )
-        )
-    if "review_creation_date" in df.columns:
-        reasons.append(
-            (F.col("review_creation_date").isNull(), "null review_creation_date")
-        )
-    if "review_answer_timestamp" in df.columns:
-        reasons.append(
-            (F.col("review_answer_timestamp").isNull(), "null review_answer_timestamp")
-        )
-    if "review_creation_date" in df.columns and "review_answer_timestamp" in df.columns:
-        reasons.append(
-            (
-                F.col("review_creation_date").isNotNull()
-                & F.col("review_answer_timestamp").isNotNull()
-                & (F.col("review_answer_timestamp") < F.col("review_creation_date")),
-                "review_answer_timestamp before review_creation_date",
-            )
-        )
+def print_report(results: List[dict]) -> None:
+    """Print a simple PASS / FAIL report."""
+    for r in results:
+        status = "PASS" if r["passed"] else "FAIL"
+        print(f"[{status}] {r['check']} - {r['detail']}")
 
-    # start with nothing, then keep adding the matching rows for each rule,
-    # tagging each batch with its own reason
-    quarantined = None
-    for condition, reason in reasons:
-        tagged = df.filter(condition).withColumn("validation_reason", F.lit(reason))
-        # unionByName "stacks" two DataFrames together (like appending rows)
-        quarantined = tagged if quarantined is None else quarantined.unionByName(tagged)
 
-    # if there were no rules to check (shouldn't normally happen), return
-    # an empty DataFrame with the right shape instead of None
-    if quarantined is None:
-        return df.limit(0).withColumn("validation_reason", F.lit(""))
+def assert_valid(results: List[dict]) -> None:
+    """Stop the pipeline with an error if any check failed."""
+    failed = [r for r in results if not r["passed"]]
+    if failed:
+        raise ValueError(f"Reviews validation failed: {failed}")
 
-    return quarantined
+
+if __name__ == "__main__":
+    from pyspark.sql import SparkSession
+    from cleaning_reviews import load_reviews, clean_reviews
+
+    spark = SparkSession.builder.master("local[*]").appName("validate_reviews").getOrCreate()
+    input_path = Path(__file__).resolve().parents[1] / "data" / "raw" / "olist_order_reviews_dataset.csv"
+    clean = clean_reviews(load_reviews(spark, str(input_path)))
+    print_report(validate_reviews(clean))

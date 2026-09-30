@@ -1,136 +1,104 @@
-"""
-test_validation_reviews.py
+# test_validation_reviews.py
+# Unit tests for validation_reviews.py. Run with: pytest
 
-Same idea as the cleaning tests: each test builds a tiny fake DataFrame
-for one scenario, runs validate_order_reviews() (or quarantine_invalid_rows()),
-and checks the result matches what we expect.
-"""
+import pytest
+from pyspark.sql import SparkSession
+from pyspark.sql.types import StringType, StructField, StructType
 
-from datetime import datetime, timezone
+from src.validation_reviews import validate_reviews, all_passed, assert_valid
+from src.cleaning_reviews import clean_reviews, standardise_reviews, fill_missing_comments
 
-from pyspark.sql import Row
-from pyspark.sql import types as T
-
-from src.validation_reviews import quarantine_invalid_rows, validate_order_reviews
-
-# for validation tests we build data that already has the RIGHT types
-# (unlike the cleaning tests, where everything starts as text)
-SCHEMA = T.StructType(
-    [
-        T.StructField("review_id", T.StringType(), True),
-        T.StructField("order_id", T.StringType(), True),
-        T.StructField("review_score", T.IntegerType(), True),
-        T.StructField("review_creation_date", T.TimestampType(), True),
-        T.StructField("review_answer_timestamp", T.TimestampType(), True),
-    ]
-)
+COLUMNS = [
+    "review_id", "order_id", "review_score", "review_comment_title",
+    "review_comment_message", "review_creation_date", "review_answer_timestamp",
+]
+RAW_SCHEMA = StructType([StructField(column, StringType(), True) for column in COLUMNS])
 
 
-def _row(**overrides):
-    """Same helper idea as in the cleaning tests: sensible defaults,
-    override only what the test cares about."""
-    base = {
-        "review_id": "r1",
-        "order_id": "o1",
-        "review_score": 5,
-        "review_creation_date": datetime(2018, 1, 18, 0, 0, 0, tzinfo=timezone.utc),
-        "review_answer_timestamp": datetime(
-            2018, 1, 18, 21, 46, 59, tzinfo=timezone.utc
-        ),
-    }
-    base.update(overrides)
-    return Row(**base)
-
-
-def test_missing_columns_fails_immediately(spark):
-    df = spark.createDataFrame([Row(review_id="r1", order_id="o1")])
-    result = validate_order_reviews(df)
-    assert result.passed is False
-    assert any("missing required column" in e for e in result.errors)
-
-
-def test_clean_data_passes(spark):
-    # two perfectly valid rows -> should pass with zero errors
-    df = spark.createDataFrame(
-        [_row(), _row(review_id="r2", order_id="o2")], schema=SCHEMA
+@pytest.fixture(scope="session")
+def spark():
+    return (
+        SparkSession.builder.master("local[1]").appName("reviews_validation_tests")
+        .config("spark.sql.shuffle.partitions", "1").config("spark.ui.enabled", "false")
+        .getOrCreate()
     )
-    result = validate_order_reviews(df)
-    assert result.passed is True
-    assert result.errors == []
-    assert result.row_count == 2
 
 
-def test_null_ids_fail(spark):
-    df = spark.createDataFrame([_row(review_id=None)], schema=SCHEMA)
-    result = validate_order_reviews(df)
-    assert result.passed is False
-    assert result.metrics["null_review_id"] == 1
+def good_row(review_id="r1", order_id="o1", score="5", title="Titulo", msg="Bom",
+             created="2018-01-18 00:00:00", answered="2018-01-18 21:46:59"):
+    """A valid review row we can tweak in each test."""
+    return (review_id, order_id, score, title, msg, created, answered)
 
 
-def test_out_of_range_score_fails(spark):
-    df = spark.createDataFrame(
-        [_row(review_score=9)], schema=SCHEMA
-    )  # 9 is outside 1-5
-    result = validate_order_reviews(df)
-    assert result.passed is False
-    assert result.metrics["review_score_out_of_range"] == 1
+def typed_df(spark, rows):
+    """Apply types and comment placeholders WITHOUT the filtering steps,
+    so we can feed the validator deliberately bad data."""
+    return fill_missing_comments(standardise_reviews(spark.createDataFrame(rows, RAW_SCHEMA)))
 
 
-def test_reversed_timestamps_fail(spark):
-    # answer timestamp is BEFORE creation timestamp - shouldn't be possible
-    df = spark.createDataFrame(
-        [
-            _row(
-                review_creation_date=datetime(
-                    2018, 1, 20, 0, 0, 0, tzinfo=timezone.utc
-                ),
-                review_answer_timestamp=datetime(
-                    2018, 1, 18, 0, 0, 0, tzinfo=timezone.utc
-                ),
-            )
-        ],
-        schema=SCHEMA,
+def failed_names(results):
+    """Names of the checks that failed."""
+    return [r["check"] for r in results if not r["passed"]]
+
+
+def test_clean_data_passes_all_checks(spark):
+    raw = spark.createDataFrame([good_row(), good_row(review_id="r2", order_id="o2", title=None, msg=None)], RAW_SCHEMA)
+    assert all_passed(validate_reviews(clean_reviews(raw)))
+
+
+def test_missing_column_is_reported(spark):
+    df = typed_df(spark, [good_row()]).drop("review_score")
+    assert failed_names(validate_reviews(df)) == ["required_columns_present"]
+
+
+def test_string_dates_fail(spark):
+    df = spark.createDataFrame([good_row()], RAW_SCHEMA)  # raw strings, never converted
+    failed = failed_names(validate_reviews(df))
+    assert "creation_date_is_timestamp" in failed
+    assert "answer_timestamp_is_timestamp" in failed
+
+
+def test_bad_score_fails(spark):
+    df = typed_df(spark, [good_row(score="7")])
+    assert "score_between_1_and_5" in failed_names(validate_reviews(df))
+
+
+def test_duplicate_key_fails(spark):
+    df = typed_df(spark, [good_row(), good_row(msg="Outro")])
+    assert "review_order_key_unique" in failed_names(validate_reviews(df))
+
+
+def test_answer_before_creation_fails(spark):
+    df = typed_df(spark, [good_row(created="2018-01-20 00:00:00", answered="2018-01-19 00:00:00")])
+    assert "answer_after_creation" in failed_names(validate_reviews(df))
+
+
+def test_unfilled_comments_fail(spark):
+    df = standardise_reviews(spark.createDataFrame([good_row(title=None, msg=None)], RAW_SCHEMA))  # no placeholders
+    assert "comments_filled" in failed_names(validate_reviews(df))
+
+
+def test_line_breaks_fail(spark):
+    df = fill_missing_comments(
+        spark.createDataFrame([good_row(msg="linha1\nlinha2")], RAW_SCHEMA)
+        .withColumn("review_score", __import__("pyspark.sql.functions", fromlist=["col"]).col("review_score").cast("int"))
     )
-    result = validate_order_reviews(df)
-    assert result.passed is False
-    assert result.metrics["review_answer_before_creation"] == 1
+    # dates are still strings here, so we only check that the newline check itself fires
+    assert "no_line_breaks_in_comments" in failed_names(validate_reviews(df))
 
 
-def test_duplicate_review_id_is_warning_not_error(spark):
-    # same review_id "r1" used twice - this should be a WARNING, not a failure
-    df = spark.createDataFrame([_row(), _row(order_id="o2")], schema=SCHEMA)
-    result = validate_order_reviews(df)
-    assert result.passed is True  # still passes!
-    assert result.metrics["duplicate_review_id_groups"] == 1
-    assert any("appear more than once" in w for w in result.warnings)
+def test_one_review_per_order_check(spark):
+    df = typed_df(spark, [good_row(review_id="r1"), good_row(review_id="r2")])  # both on order o1
+    assert "one_review_per_order" in failed_names(validate_reviews(df, expect_one_review_per_order=True))
 
 
-def test_raise_if_failed_raises_valueerror(spark):
-    df = spark.createDataFrame([_row(review_score=None)], schema=SCHEMA)
-    result = validate_order_reviews(df)
-    try:
-        result.raise_if_failed()
-        assert False, "expected ValueError"
-    except ValueError:
-        pass  # this is what we wanted to happen
+def test_orders_cross_check(spark):
+    df = typed_df(spark, [good_row(order_id="ghost")])
+    orders = spark.createDataFrame([("o1",)], ["order_id"])
+    assert "order_ids_exist_in_orders" in failed_names(validate_reviews(df, orders_df=orders))
 
 
-def test_quarantine_invalid_rows_tags_reasons(spark):
-    df = spark.createDataFrame(
-        [
-            _row(review_id="bad1", review_score=None),  # broken: missing score
-            _row(review_id="bad2", order_id=None),  # broken: missing order_id
-            _row(review_id="good", review_score=4),  # this one is fine
-        ],
-        schema=SCHEMA,
-    )
-    quarantined = quarantine_invalid_rows(df).collect()
-
-    # build a lookup of review_id -> list of reasons it was flagged
-    reasons_by_id = {}
-    for r in quarantined:
-        reasons_by_id.setdefault(r["review_id"], []).append(r["validation_reason"])
-
-    assert "good" not in reasons_by_id  # the good row shouldn't show up at all
-    assert "invalid review_score" in reasons_by_id["bad1"]
-    assert "null order_id" in reasons_by_id["bad2"]
+def test_assert_valid_raises_on_failure(spark):
+    df = typed_df(spark, [good_row(score="7")])
+    with pytest.raises(ValueError):
+        assert_valid(validate_reviews(df))
