@@ -20,6 +20,17 @@ CLEAN_SCHEMA = StructType(
     ]
 )
 
+# same columns, but everything is text (like a raw, uncleaned CSV)
+STRING_SCHEMA = StructType(
+    [
+        StructField("order_id", StringType(), True),
+        StructField("payment_sequential", StringType(), True),
+        StructField("payment_type", StringType(), True),
+        StructField("payment_installments", StringType(), True),
+        StructField("payment_value", StringType(), True),
+    ]
+)
+
 # fixed 32-char fake IDs, reused across tests
 ID_A = "a" * 32
 ID_B = "b" * 32
@@ -58,6 +69,25 @@ def test_missing_column_reports_without_raising_when_not_strict(spark):
     report = validate_order_payments(df, strict=False)
     assert report["passed"] is False
     assert any("payment_value" in e for e in report["errors"])
+
+
+def test_wrong_data_types_flagged(spark):
+    # every column is a string here, so the type check must fail for the numeric ones
+    df = spark.createDataFrame(
+        [(ID_A, "1", "credit_card", "3", "99.9")], schema=STRING_SCHEMA
+    )
+    report = validate_order_payments(df, strict=False)
+    assert report["passed"] is False
+    assert any("payment_value" in e and "expected 'double'" in e for e in report["errors"])
+    assert any("payment_sequential" in e and "expected 'int'" in e for e in report["errors"])
+
+
+def test_wrong_data_types_raise_in_strict_mode(spark):
+    df = spark.createDataFrame(
+        [(ID_A, "1", "credit_card", "3", "99.9")], schema=STRING_SCHEMA
+    )
+    with pytest.raises(ValidationError, match="expected"):
+        validate_order_payments(df, strict=True)
 
 
 def test_null_in_required_column_flagged(spark):
@@ -100,6 +130,13 @@ def test_invalid_payment_type_flagged(spark):
     assert any("bitcoin" in e for e in report["errors"])
 
 
+def test_not_defined_payment_type_is_allowed(spark):
+    # 'not_defined' is a known Olist category, so it must not be an error
+    rows = [(ID_A, 1, "not_defined", 1, 10.0)]
+    report = validate_order_payments(make_clean_df(spark, rows), strict=False)
+    assert report["passed"] is True
+
+
 def test_duplicate_order_id_sequential_flagged(spark):
     # two rows sharing the same (order_id, payment_sequential) key -> duplicate error
     rows = [
@@ -116,7 +153,25 @@ def test_zero_value_is_warning_not_error(spark):
     report = validate_order_payments(make_clean_df(spark), strict=False)
     assert report["passed"] is True
     assert any("payment_value == 0" in w for w in report["warnings"])
-    assert any("payment_installments == 0" in w for w in report["warnings"])
+    assert any(
+        "payment_installments == 0" in w for w in report["warnings"]
+    )
+
+
+def test_zero_credit_card_installments_are_an_error(spark):
+    rows = [(ID_A, 1, "credit_card", 0, 99.9)]
+    report = validate_order_payments(make_clean_df(spark, rows), strict=False)
+    assert report["passed"] is False
+    assert any("credit-card" in error for error in report["errors"])
+
+
+def test_zero_non_financed_installments_remain_a_warning(spark):
+    rows = [(ID_A, 1, "voucher", 0, 0.0)]
+    report = validate_order_payments(make_clean_df(spark, rows), strict=False)
+    assert report["passed"] is True
+    assert any(
+        "payment_installments == 0" in warning for warning in report["warnings"]
+    )
 
 
 def test_strict_mode_raises_with_error_details(spark):
