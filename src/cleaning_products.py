@@ -1,27 +1,20 @@
 """
-Silver-layer cleaning for the products dataset.
+Silver-layer cleaning for the products dataset
 
-Casts types, fixes source column typos, normalises text, flags incomplete
-records, derives product volume and attaches the English category name
-from product_category_name_translation.
-
-Input : bronze products + bronze translation DataFrames (string or typed columns).
-Output: one row per product_id. Run validation_products.validate_products before writing.
+Casts types, fixes source column typos, normalises text and attaches the
+English category name from product_category_name_translation.
 
 Rules:
-    - Missing category -> "unknown", flagged with is_category_missing.
-    - Categories with no official translation -> English "unknown".
-    - Rows with missing dimensions are kept and flagged with is_dims_missing.
-    - product_weight_g == 0 is kept as-is.
+    - Missing category -> stays NULL in both languages.
+    - Categories with no translation (pc_gamer,
+      portateis_cozinha_e_preparadores_de_alimentos) -> English NULL.
     - Only exact duplicate rows are dropped. Conflicting rows sharing a
       product_id are left for validation to reject.
 """
 
-from functools import reduce
-
 import pyspark.sql.functions as F
 from pyspark.sql import Column, DataFrame
-from pyspark.sql.types import IntegerType, LongType, StringType
+from pyspark.sql.types import IntegerType, StringType
 
 # Source column typos -> fixed names
 RENAMES = {
@@ -53,20 +46,6 @@ INT_COLS = [
     "product_width_cm",
 ]
 
-DIM_COLS = [
-    "product_weight_g",
-    "product_length_cm",
-    "product_height_cm",
-    "product_width_cm",
-]
-SIZE_COLS = ["product_length_cm", "product_height_cm", "product_width_cm"]
-
-UNKNOWN_CATEGORY = "unknown"
-
-# Categories with no official Olist translation -> English "unknown".
-# Listed so validation can tell a KNOWN gap from a NEW one.
-KNOWN_UNTRANSLATED = {"pc_gamer", "portateis_cozinha_e_preparadores_de_alimentos"}
-
 OUTPUT_COLUMNS = [
     "product_id",
     "product_category_name",
@@ -78,17 +57,13 @@ OUTPUT_COLUMNS = [
     "product_length_cm",
     "product_height_cm",
     "product_width_cm",
-    "product_volume_cm3",
-    "is_category_missing",
-    "is_dims_missing",
-    "_silver_processed_at",
 ]
 
 
 # Helpers
 def _strip_bom_and_whitespace(df: DataFrame) -> DataFrame:
     """Clean header names; the translation CSV header carries a UTF-8 BOM."""
-    return df.toDF(*[c.replace("\ufeff", "").strip() for c in df.columns])
+    return df.toDF(*[c.replace("﻿", "").strip() for c in df.columns])
 
 
 def _check_required_columns(df: DataFrame, required: list, name: str) -> None:
@@ -101,10 +76,6 @@ def _clean_str(col_name: str) -> Column:
     """Trim; empty string -> null."""
     trimmed = F.trim(F.col(col_name).cast(StringType()))
     return F.when(trimmed == "", F.lit(None)).otherwise(trimmed)
-
-
-def _any(conditions: list) -> Column:
-    return reduce(lambda a, b: a | b, conditions)
 
 
 # Products transformations
@@ -132,26 +103,6 @@ def drop_exact_duplicates(df: DataFrame) -> DataFrame:
     return df.dropDuplicates()
 
 
-def flag_and_fill(df: DataFrame) -> DataFrame:
-    """Flag BEFORE filling so original nullness is preserved."""
-    return (
-        df.withColumn("is_category_missing", F.col("product_category_name").isNull())
-        .withColumn(
-            "product_category_name",
-            F.coalesce("product_category_name", F.lit(UNKNOWN_CATEGORY)),
-        )
-        .withColumn("is_dims_missing", _any([F.col(c).isNull() for c in DIM_COLS]))
-    )
-
-
-def add_derived(df: DataFrame) -> DataFrame:
-    """Volume as long to rule out int overflow. Null if any size is null."""
-    return df.withColumn(
-        "product_volume_cm3",
-        reduce(lambda a, b: a * b, [F.col(c).cast(LongType()) for c in SIZE_COLS]),
-    )
-
-
 # Translation
 def clean_translation(translation: DataFrame) -> DataFrame:
     """Normalise the translation table: trim, lowercase, drop nulls, one row per category."""
@@ -173,17 +124,8 @@ def clean_translation(translation: DataFrame) -> DataFrame:
 
 
 def add_english_category(df: DataFrame, translation: DataFrame) -> DataFrame:
-    """Unmatched -> "unknown". Validation fails if a NEW category lands here."""
-    return df.join(
-        F.broadcast(translation), "product_category_name", "left"
-    ).withColumn(
-        "product_category_name_english",
-        F.coalesce("product_category_name_english", F.lit(UNKNOWN_CATEGORY)),
-    )
-
-
-def add_metadata(df: DataFrame) -> DataFrame:
-    return df.withColumn("_silver_processed_at", F.current_timestamp())
+    """Left join. No match -> English NULL."""
+    return df.join(F.broadcast(translation), "product_category_name", "left")
 
 
 # Entry point
@@ -195,16 +137,11 @@ def clean_products(products: DataFrame, translation: DataFrame) -> DataFrame:
     translation_clean = clean_translation(translation)
 
     return (
-        products.select(
-            *SOURCE_COLUMNS
-        )  # drop bronze metadata so exact-dup check works
+        products.select(*SOURCE_COLUMNS)
         .transform(rename_columns)
         .transform(cast_types)
         .transform(standardise_text)
         .transform(drop_exact_duplicates)
-        .transform(flag_and_fill)
-        .transform(add_derived)
         .transform(lambda d: add_english_category(d, translation_clean))
-        .transform(add_metadata)
         .select(*OUTPUT_COLUMNS)
     )
