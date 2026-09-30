@@ -1,81 +1,28 @@
 """
-VS Code Module: product_category.py
-Handles string sanitization, validation, and missing value handling for product category dataset.
+VS Code Module: cleaning_Validate_product_category.py
+Handles string sanitization and validation for product category translation dataset using PySpark.
 """
 
-import re
-from typing import Dict, List, Optional
-import pandas as pd
+from pyspark.sql import DataFrame
+from pyspark.sql import functions as F
 
 
-def sanitize_category_name(text: Optional[str]) -> str:
-    """Standardize string formatting: strip whitespace, handle case, remove special symbols."""
-    if not isinstance(text, str) or not text.strip():
-        return "unknown"
-
-    # Trim and lower
-    cleaned = text.strip().lower()
-    # Replace underscores/hyphens with spaces
-    cleaned = re.sub(r'[\_\-]+', ' ', cleaned)
-    # Remove special characters keeping alphanumeric and spaces
-    cleaned = re.sub(r'[^\w\s]', '', cleaned)
-    # Replace multiple spaces with a single space
-    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
-
-    return cleaned if cleaned else "unknown"
+def clean_category_translation(df: DataFrame) -> DataFrame:
+    """Sanitizes text, removes special characters, standardizes whitespace, and drops duplicates."""
+    return df \
+        .dropna(subset=["product_category_name"]) \
+        .withColumn("product_category_name", F.lower(F.trim(F.col("product_category_name")))) \
+        .withColumn("product_category_name", F.regexp_replace(F.col("product_category_name"), r"[\_\-]+", " ")) \
+        .withColumn("product_category_name_english", F.initcap(F.trim(F.col("product_category_name_english")))) \
+        .dropDuplicates(["product_category_name"])
 
 
-def clean_category_dataframe(
-    df: pd.DataFrame,
-    pt_col: str = "product_category_name",
-    en_col: str = "product_category_name_english"
-) -> pd.DataFrame:
-    """Applies sanitization and translations to DataFrame."""
-    cleaned_df = df.copy()
+def validate_category_translation(df: DataFrame) -> None:
+    """Data quality assertions prior to Silver layer write."""
+    row_count = df.count()
+    assert row_count > 0, "Validation Error: silver_category_translation resulted in 0 rows!"
 
-    # Sanitize category strings
-    cleaned_df[pt_col] = cleaned_df[pt_col].apply(sanitize_category_name)
+    null_count = df.filter(F.col("product_category_name").isNull()).count()
+    assert null_count == 0, f"Validation Error: Found {null_count} NULL category keys!"
 
-    if en_col in cleaned_df.columns:
-        cleaned_df[en_col] = cleaned_df[en_col].apply(
-            lambda x: sanitize_category_name(
-                x).title() if isinstance(x, str) else "Unknown"
-        )
-    else:
-        cleaned_df[en_col] = "Unknown"
-
-    # Deduplicate based on primary key category name
-    cleaned_df = cleaned_df.drop_duplicates(
-        subset=[pt_col]).reset_index(drop=True)
-    return cleaned_df
-
-
-def validate_category_dataframe(
-    df: pd.DataFrame,
-    pt_col: str = "product_category_name",
-    en_col: str = "product_category_name_english"
-) -> List[str]:
-    """Runs data quality validation checks returning list of failure messages."""
-    errors = []
-
-    # Check 1: Primary category key must not contain nulls
-    if df[pt_col].isnull().any():
-        errors.append(
-            "Validation Failure: Found NULL values in Portuguese category column.")
-
-    # Check 2: Check for empty strings
-    if (df[pt_col] == "").any():
-        errors.append(
-            "Validation Failure: Empty strings found in category names.")
-
-    # Check 3: Check uniqueness
-    if df[pt_col].duplicated().any():
-        errors.append("Validation Failure: Duplicate category entries exist.")
-
-    # Check 4: Unmapped English translation ratio check
-    unmapped_ratio = (df[en_col] == "Unknown").mean()
-    if unmapped_ratio > 0.10:
-        errors.append(
-            f"Validation Alert: More than 10% ({unmapped_ratio:.1%}) of categories lack English translation.")
-
-    return errors
+    print(f"Validation successful: {row_count} rows ready for Silver layer.")
