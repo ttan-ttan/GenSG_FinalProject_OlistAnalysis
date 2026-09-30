@@ -2,12 +2,18 @@ import os
 import sys
 
 import pytest
+from pyspark.sql import SparkSession
 from pyspark.sql.types import StringType, StructField, StructType
 
 # so tests can import from src/ regardless of where pytest is run from
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
-from src.cleaning_order_payments import REQUIRED_COLUMNS, clean_order_payments
+from src.cleaning_order_payments import (
+    REQUIRED_COLUMNS,
+    aggregate_order_payment_totals,
+    clean_order_payments,
+)
+from src.validation_payments import validate_order_payments
 
 # Raw input is all-strings, matching how the CSV is actually read.
 RAW_SCHEMA = StructType(
@@ -80,6 +86,82 @@ def test_drops_duplicate_order_id_sequential_pairs(spark):
     assert result[0]["payment_type"] == "credit_card"  # first occurrence wins
 
 
+def test_credit_card_zero_installments_fixed_and_negative_dropped(spark):
+    rows = [
+        (ID_A, "1", "credit_card", "0", "10.0"),
+        (ID_B, "1", "boleto", "-1", "20.0"),
+    ]
+    result = clean_order_payments(make_raw_df(spark, rows)).collect()
+    assert len(result) == 1
+    assert result[0]["payment_installments"] == 1
+
+
+def test_drops_negative_payment_value(spark):
+    # negative payments are invalid, validation would flag them, so cleaning drops them
+    rows = [
+        (ID_A, "1", "credit_card", "1", "-5.0"),
+        (ID_B, "1", "boleto", "1", "20.0"),
+    ]
+    result = clean_order_payments(make_raw_df(spark, rows)).collect()
+    assert [r["order_id"] for r in result] == [ID_B]
+
+
+def test_drops_payment_sequential_below_one(spark):
+    rows = [
+        (ID_A, "0", "credit_card", "1", "10.0"),
+        (ID_B, "1", "boleto", "1", "20.0"),
+    ]
+    result = clean_order_payments(make_raw_df(spark, rows)).collect()
+    assert [r["order_id"] for r in result] == [ID_B]
+
+
+def test_drops_order_id_with_wrong_length(spark):
+    rows = [
+        ("too_short", "1", "credit_card", "1", "10.0"),
+        (ID_B, "1", "boleto", "1", "20.0"),
+    ]
+    result = clean_order_payments(make_raw_df(spark, rows)).collect()
+    assert [r["order_id"] for r in result] == [ID_B]
+
+
+def test_drops_unknown_payment_type(spark):
+    rows = [
+        (ID_A, "1", "bitcoin", "1", "10.0"),
+        (ID_B, "1", "boleto", "1", "20.0"),
+    ]
+    result = clean_order_payments(make_raw_df(spark, rows)).collect()
+    assert [r["order_id"] for r in result] == [ID_B]
+
+
+def test_not_defined_kept_by_default_and_droppable(spark):
+    rows = [
+        (ID_A, "1", "not_defined", "1", "10.0"),
+        (ID_B, "1", "boleto", "1", "20.0"),
+    ]
+    assert clean_order_payments(make_raw_df(spark, rows)).count() == 2
+    dropped = clean_order_payments(make_raw_df(spark, rows), drop_not_defined=True)
+    assert [r["order_id"] for r in dropped.collect()] == [ID_B]
+
+
+def test_split_payments_are_kept_and_order_total_is_aggregated(spark):
+    rows = [
+        (ID_A, "1", "credit_card", "2", "10.0"),
+        (ID_A, "2", "voucher", "1", "5.5"),
+        (ID_B, "1", "boleto", "1", "20.0"),
+    ]
+    cleaned = clean_order_payments(make_raw_df(spark, rows))
+    totals = {
+        row["order_id"]: (
+            row["payment_record_count"],
+            row["order_payment_total"],
+        )
+        for row in aggregate_order_payment_totals(cleaned).collect()
+    }
+    assert cleaned.filter(cleaned.order_id == ID_A).count() == 2
+    assert totals[ID_A] == (2, 15.5)
+    assert totals[ID_B] == (1, 20.0)
+
+
 def test_casts_dtypes_correctly(spark):
     # confirm final schema types match CLEAN_SCHEMA expectations
     result = clean_order_payments(make_raw_df(spark))
@@ -124,3 +206,22 @@ def test_output_column_order_is_stable(spark):
     # regardless of input column order, output should always match REQUIRED_COLUMNS order
     result = clean_order_payments(make_raw_df(spark))
     assert result.columns == REQUIRED_COLUMNS
+
+
+def test_cleaned_output_passes_validation(spark):
+    # the most important alignment test: messy data goes in, and whatever comes
+    # out of cleaning must have ZERO validation errors
+    rows = [
+        (ID_A.upper(), "1", " CREDIT_CARD ", "0", "10.0"),  # messy but fixable
+        (ID_A, "1", "credit_card", "1", "10.0"),  # duplicate
+        (ID_B, "1", "boleto", "1", "-5.0"),  # negative value
+        (ID_C, "0", "voucher", "1", "5.0"),  # bad sequence
+        ("short", "1", "boleto", "1", "5.0"),  # bad order_id length
+        (ID_C, "1", "bitcoin", "1", "5.0"),  # unknown type
+        (ID_C, "2", "voucher", "1", "abc"),  # invalid number
+        (ID_B, "2", "not_defined", "1", "7.0"),  # allowed by default
+    ]
+    cleaned = clean_order_payments(make_raw_df(spark, rows))
+    report = validate_order_payments(cleaned, strict=False)
+    assert report["errors"] == []
+    assert report["passed"] is True

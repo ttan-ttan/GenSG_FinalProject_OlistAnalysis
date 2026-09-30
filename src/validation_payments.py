@@ -22,9 +22,20 @@ REQUIRED_COLUMNS = [
     "payment_value",
 ]
 
+# The data type each column must have (this is what cleaning produces)
+EXPECTED_TYPES = {
+    "order_id": "string",
+    "payment_sequential": "int",
+    "payment_type": "string",
+    "payment_installments": "int",
+    "payment_value": "double",
+}
+
+# Must match VALID_PAYMENT_TYPES in cleaning_order_payments.py
 VALID_PAYMENT_TYPES = ["boleto", "credit_card", "debit_card", "not_defined", "voucher"]
 
-ORDER_ID_LENGTH = 32  # Olist order_id is a fixed-length hex string
+# Olist order_id is a fixed-length hex string (must match cleaning)
+ORDER_ID_LENGTH = 32
 
 
 class ValidationError(Exception):
@@ -46,23 +57,41 @@ def _count_where(condition) -> F.Column:
     return F.coalesce(F.sum(_flag(condition)), F.lit(0))
 
 
+def _early_report(errors: list[str], warnings: list[str], strict: bool) -> dict:
+    """
+    Used when the table is so wrong (missing columns, wrong data types) that
+    the other checks would be meaningless. Raises in strict mode, otherwise
+    returns a failed report.
+    """
+    if strict:
+        raise ValidationError("; ".join(errors))
+    return {
+        "passed": False,
+        "errors": errors,
+        "warnings": warnings,
+        "row_count": None,
+    }
+
+
 def validate_order_payments(df: DataFrame, strict: bool = True) -> dict:
     """
     Validate a cleaned order_payments Spark DataFrame.
 
     Critical checks (added to "errors"; raise ValidationError if strict=True):
       - all required columns present
+      - every column has the expected data type
       - no nulls in required columns
       - order_id is exactly 32 characters
       - payment_sequential >= 1
       - payment_value >= 0 (no negative payments)
       - payment_installments >= 0
+      - credit-card payments have at least one installment
       - payment_type is one of the known categories
       - no duplicate (order_id, payment_sequential) pairs
 
     Warning checks (added to "warnings"; never raise):
       - payment_value == 0 (legitimate for some voucher / not_defined rows)
-      - payment_installments == 0
+      - payment_installments == 0 for payment types other than credit_card
 
     All the row-level predicates are counted in a single aggregation pass so
     Spark scans the data once rather than once per rule.
@@ -73,19 +102,23 @@ def validate_order_payments(df: DataFrame, strict: bool = True) -> dict:
     errors: list[str] = []
     warnings: list[str] = []
 
-    # check required cols exist first, bail out early if not
+    # 1. Required columns must exist. Bail out early if not.
     missing = set(REQUIRED_COLUMNS) - set(df.columns)
     if missing:
         errors.append(f"Missing required column(s): {sorted(missing)}")
-        report = {
-            "passed": False,
-            "errors": errors,
-            "warnings": warnings,
-            "row_count": None,
-        }
-        if strict:
-            raise ValidationError("; ".join(errors))
-        return report
+        return _early_report(errors, warnings, strict)
+
+    # 2. Data types must be correct. Without this, Spark quietly converts
+    #    strings while comparing, so a value like "abc" would slip through.
+    actual_types = dict(df.dtypes)
+    for col_name, expected in EXPECTED_TYPES.items():
+        if actual_types[col_name] != expected:
+            errors.append(
+                f"Column '{col_name}' has type '{actual_types[col_name]}', "
+                f"expected '{expected}'"
+            )
+    if errors:
+        return _early_report(errors, warnings, strict)
 
     df = df.cache()  # reused across multiple aggs below, so cache it
 
@@ -109,13 +142,18 @@ def validate_order_payments(df: DataFrame, strict: bool = True) -> dict:
                 "negative_installments"
             ),
             _count_where(
+                (F.col("payment_type") == F.lit("credit_card"))
+                & (F.col("payment_installments") == F.lit(0))
+            ).alias("zero_credit_card_installments"),
+            _count_where(
                 F.col("payment_type").isNotNull()
                 & ~F.col("payment_type").isin(VALID_PAYMENT_TYPES)
             ).alias("bad_type"),
             _count_where(F.col("payment_value") == F.lit(0)).alias("zero_value"),
-            _count_where(F.col("payment_installments") == F.lit(0)).alias(
-                "zero_installments"
-            ),
+            _count_where(
+                (F.col("payment_installments") == F.lit(0))
+                & (F.col("payment_type") != F.lit("credit_card"))
+            ).alias("zero_installments"),
         ]
 
         # run everything in ONE aggregation call (single scan of the data)
@@ -158,6 +196,13 @@ def validate_order_payments(df: DataFrame, strict: bool = True) -> dict:
                 f"{int(stats['negative_installments'])} row(s) have negative payment_installments"
             )
 
+        if int(stats["zero_credit_card_installments"]) > 0:
+            errors.append(
+                f"{int(stats['zero_credit_card_installments'])} "
+                "credit-card row(s) "
+                "have payment_installments == 0"
+            )
+
         if int(stats["bad_type"]) > 0:
             # only re-scan the data here to find *which* bad types exist, for the error message
             found = sorted(
@@ -182,7 +227,7 @@ def validate_order_payments(df: DataFrame, strict: bool = True) -> dict:
                 f"{dup_rows} row(s) share a duplicate (order_id, payment_sequential) pair"
             )
 
-        # warnings — don't fail validation, just flag
+        # warnings - don't fail validation, just flag
         if int(stats["zero_value"]) > 0:
             warnings.append(
                 f"{int(stats['zero_value'])} row(s) have payment_value == 0"
@@ -206,4 +251,4 @@ def validate_order_payments(df: DataFrame, strict: bool = True) -> dict:
     if strict and not passed:
         raise ValidationError("; ".join(errors))
 
-    return report  # was "reportx" in your version — typo, fixed here
+    return report
