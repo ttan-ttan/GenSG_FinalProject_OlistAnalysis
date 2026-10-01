@@ -1,19 +1,19 @@
-import os
-import sys
-
-import pytest
-from pyspark.sql import SparkSession
-from pyspark.sql.types import StringType, StructField, StructType
-
-# so tests can import from src/ regardless of where pytest is run from
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
-
+from src.validation_payments import validate_order_payments
 from src.cleaning_order_payments import (
     REQUIRED_COLUMNS,
     aggregate_order_payment_totals,
     clean_order_payments,
 )
-from src.validation_payments import validate_order_payments
+import os
+import sys
+
+import pytest
+from pyspark.sql.types import StringType, StructField, StructType
+
+# so tests can import from src/ regardless of where pytest is run from
+sys.path.append(os.path.abspath(os.path.join(
+    os.path.dirname(__file__), "..", "src")))
+
 
 # Raw input is all-strings, matching how the CSV is actually read.
 RAW_SCHEMA = StructType(
@@ -36,8 +36,10 @@ def make_raw_df(spark, rows=None):
     # default fixture covering the main cleaning cases in one go
     if rows is None:
         rows = [
-            (ID_A.upper(), "1", "CREDIT_CARD", "1", "10.0"),  # uppercase -> normalized
-            (ID_A, "1", "credit_card", "1", "10.0"),  # exact dup after normalizing
+            # uppercase -> normalized
+            (ID_A.upper(), "1", "CREDIT_CARD", "1", "10.0"),
+            # exact dup after normalizing
+            (ID_A, "1", "credit_card", "1", "10.0"),
             (ID_B, "1", " boleto ", "3", "50.5"),  # padded whitespace
             (ID_C, "2", "voucher", "0", "0.0"),  # zero installments/value
             (None, "1", "debit_card", "2", "20.0"),  # null key -> dropped
@@ -47,7 +49,8 @@ def make_raw_df(spark, rows=None):
 
 def test_missing_required_column_raises(spark):
     # df is missing payment_sequential/installments/value entirely
-    df = spark.createDataFrame([(ID_A, "boleto")], ["order_id", "payment_type"])
+    df = spark.createDataFrame(
+        [(ID_A, "boleto")], ["order_id", "payment_type"])
     with pytest.raises(ValueError):
         clean_order_payments(df)
 
@@ -56,7 +59,8 @@ def test_lowercases_and_strips_strings(spark):
     # every row's order_id/payment_type should already be clean after processing
     result = clean_order_payments(make_raw_df(spark)).collect()
     assert all(r["order_id"] == r["order_id"].lower() for r in result)
-    assert all(r["payment_type"] == r["payment_type"].strip().lower() for r in result)
+    assert all(r["payment_type"] == r["payment_type"].strip().lower()
+               for r in result)
 
 
 def test_drops_rows_with_null_required_fields(spark):
@@ -139,7 +143,8 @@ def test_not_defined_kept_by_default_and_droppable(spark):
         (ID_B, "1", "boleto", "1", "20.0"),
     ]
     assert clean_order_payments(make_raw_df(spark, rows)).count() == 2
-    dropped = clean_order_payments(make_raw_df(spark, rows), drop_not_defined=True)
+    dropped = clean_order_payments(
+        make_raw_df(spark, rows), drop_not_defined=True)
     assert [r["order_id"] for r in dropped.collect()] == [ID_B]
 
 
@@ -195,7 +200,8 @@ def test_non_numeric_value_is_dropped_not_crashed(spark):
     # bad numeric string should become null on cast, then get dropped -- not raise an error
     rows = [
         (ID_A, "1", "credit_card", "1", "10.0"),
-        (ID_B, "1", "boleto", "2", "not_a_number"),  # uncastable -> null -> dropped
+        # uncastable -> null -> dropped
+        (ID_B, "1", "boleto", "2", "not_a_number"),
     ]
     result = clean_order_payments(make_raw_df(spark, rows))
     assert result.count() == 1
