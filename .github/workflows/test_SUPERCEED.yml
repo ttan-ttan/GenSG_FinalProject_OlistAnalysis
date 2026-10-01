@@ -9,8 +9,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Explain superseded workflow
-<<<<<<< HEAD
         run: echo "Use CI.yml for PySpark tests."
-=======
-        run: echo "Use CI.yml for PySpark tests."
->>>>>>> b3362050a404fbf183b817c94e67d9b52303eece
