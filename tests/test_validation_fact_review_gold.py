@@ -29,8 +29,8 @@ def test_validate_fact_review_gold_accepts_valid_data(spark):
 
 
 def test_validate_fact_review_gold_rejects_invalid_score(spark):
-    df = make_valid_df(spark).withColumn(
-        "review_score", df["review_score"].cast("int"))
+    df = make_valid_df(spark)
+    df = df.withColumn("review_score", df["review_score"].cast("int"))
     bad = df.withColumn("review_score", df["review_score"] + 10)
     with pytest.raises(ValueError):
         validate_fact_review_gold(bad)

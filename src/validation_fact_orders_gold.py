@@ -56,7 +56,8 @@ def validate_fact_orders_gold(df: DataFrame) -> DataFrame:
             "Duplicate order_id values detected in Gold fact orders")
 
     invalid_statuses = df.filter(
-        ~F.col("order_status").isin(list(VALID_STATUSES)))
+        F.col("order_status").isin(list(VALID_STATUSES)).__invert__()
+    )
     if invalid_statuses.count() > 0:
         raise ValueError("Invalid order_status detected in Gold fact orders")
 

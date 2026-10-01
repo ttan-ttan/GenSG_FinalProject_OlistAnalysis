@@ -24,7 +24,7 @@ def validate_fact_review_gold(df: DataFrame) -> DataFrame:
         if df.filter(F.col(col).isNull()).count() > 0:
             raise ValueError(f"Null critical field in Gold fact review: {col}")
 
-    if df.filter(~F.col("review_score").between(1, 5)).count() > 0:
+    if df.filter(F.col("review_score").between(1, 5).__invert__()).count() > 0:
         raise ValueError("Invalid review_score detected")
 
     dup = df.groupBy("review_id", "order_id").count().filter(
