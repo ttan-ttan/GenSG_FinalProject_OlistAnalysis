@@ -1,5 +1,6 @@
+""" test_cleaning_fact_orders_gold  """
+from pyspark.sql.types import StringType, StructField, StructType
 from src.cleaning_fact_orders_gold import clean_fact_orders_gold
-
 
 TEST_COLUMNS = [
     "order_id",
@@ -12,8 +13,13 @@ TEST_COLUMNS = [
     "order_estimated_delivery_date",
 ]
 
+TEST_SCHEMA = StructType(
+    [StructField(column, StringType(), True) for column in TEST_COLUMNS]
+)
+
 
 def test_clean_fact_orders_gold_standardizes_and_deduplicates(spark):
+    """ Test that clean_fact_orders_gold standardizes the order_status and removes duplicates."""
     df = spark.createDataFrame(
         [
             (
@@ -47,7 +53,7 @@ def test_clean_fact_orders_gold_standardizes_and_deduplicates(spark):
                 "2024-01-06 08:00:00",
             ),
         ],
-        TEST_COLUMNS,
+        TEST_SCHEMA,
     )
 
     result = clean_fact_orders_gold(df)
@@ -59,6 +65,7 @@ def test_clean_fact_orders_gold_standardizes_and_deduplicates(spark):
 
 
 def test_clean_fact_orders_gold_casts_timestamps_and_keeps_valid_rows(spark):
+    """ Test that clean_fact_orders_gold casts timestamp columns and keeps only valid rows."""
     df = spark.createDataFrame(
         [
             (
@@ -82,7 +89,7 @@ def test_clean_fact_orders_gold_casts_timestamps_and_keeps_valid_rows(spark):
                 "2024-02-16 12:00:00",
             ),
         ],
-        TEST_COLUMNS,
+        TEST_SCHEMA,
     )
 
     result = clean_fact_orders_gold(df)

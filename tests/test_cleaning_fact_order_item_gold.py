@@ -1,7 +1,10 @@
+""" test_cleaning_fact_order_item_gold  """
 from src.cleaning_fact_order_item_gold import clean_fact_order_item_gold
 
 
 def test_clean_fact_order_item_gold_filters_and_casts(spark):
+    """ Test that clean_fact_order_item_gold filters out invalid rows 
+    and casts columns to the correct types."""
     df = spark.createDataFrame(
         [
             ("o1", 1, "p1", "s1", "2018-01-01 00:00:00", 10.5, 2.0),

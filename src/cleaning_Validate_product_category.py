@@ -60,7 +60,8 @@ def clean_category_translation(df: DataFrame) -> DataFrame:
     cleaned_df = (
         df.dropna(subset=["product_category_name"])
         .withColumn(
-            "product_category_name", F.lower(F.trim(F.col("product_category_name")))
+            "product_category_name", F.lower(
+                F.trim(F.col("product_category_name")))
         )
         .withColumn(
             "product_category_name",
@@ -73,7 +74,7 @@ def clean_category_translation(df: DataFrame) -> DataFrame:
         .dropDuplicates(["product_category_name"])
     )
 
-    # 2. Patch known missing categories in Olist dataset (pc_gamer & portateis_cozinha_e_preparadores_de_alimentos)
+    # 2. Patch known missing categories in Olist dataset
     missing_categories_data = [
         ("pc gamer", "PC Gamer"),
         (
@@ -87,7 +88,8 @@ def clean_category_translation(df: DataFrame) -> DataFrame:
     )
 
     # 3. Combine and remove any potential duplicates introduced by patching
-    final_df = cleaned_df.union(patch_df).dropDuplicates(["product_category_name"])
+    final_df = cleaned_df.union(patch_df).dropDuplicates([
+        "product_category_name"])
 
     return final_df
 

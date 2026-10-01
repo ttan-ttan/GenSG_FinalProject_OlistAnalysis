@@ -1,7 +1,10 @@
+""" test_cleaning_dim_date_gold  """
 from src.cleaning_dim_date_gold import build_dim_date, clean_dim_date_gold
 
 
 def test_build_dim_date_creates_calendar_rows(spark):
+    """ Test that build_dim_date creates the correct number of 
+    calendar rows from a DataFrame with timestamps."""
     df = spark.createDataFrame(
         [("2018-01-01 10:00:00",), ("2018-01-03 12:00:00",)],
         ["order_purchase_timestamp"],
@@ -13,6 +16,7 @@ def test_build_dim_date_creates_calendar_rows(spark):
 
 
 def test_clean_dim_date_gold_standardizes_and_removes_nulls(spark):
+    """ Test that clean_dim_date_gold standardizes the date format and removes nulls."""
     df = spark.createDataFrame(
         [("2018-01-01 10:00:00",), (None,), ("2018-01-02 12:00:00",)],
         ["order_purchase_timestamp"],
