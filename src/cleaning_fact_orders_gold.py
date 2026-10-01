@@ -44,12 +44,26 @@ def clean_fact_orders_gold(df: DataFrame) -> DataFrame:
     df = (
         df.withColumn("order_id", F.trim(F.col("order_id").cast(StringType())))
         .withColumn("customer_id", F.trim(F.col("customer_id").cast(StringType())))
-        .withColumn("order_status", F.lower(F.trim(F.col("order_status").cast(StringType()))))
-        .withColumn("order_purchase_timestamp", F.to_timestamp(F.col("order_purchase_timestamp")))
+        .withColumn(
+            "order_status", F.lower(F.trim(F.col("order_status").cast(StringType())))
+        )
+        .withColumn(
+            "order_purchase_timestamp",
+            F.to_timestamp(F.col("order_purchase_timestamp")),
+        )
         .withColumn("order_approved_at", F.to_timestamp(F.col("order_approved_at")))
-        .withColumn("order_delivered_carrier_date", F.to_timestamp(F.col("order_delivered_carrier_date")))
-        .withColumn("order_delivered_customer_date", F.to_timestamp(F.col("order_delivered_customer_date")))
-        .withColumn("order_estimated_delivery_date", F.to_timestamp(F.col("order_estimated_delivery_date")))
+        .withColumn(
+            "order_delivered_carrier_date",
+            F.to_timestamp(F.col("order_delivered_carrier_date")),
+        )
+        .withColumn(
+            "order_delivered_customer_date",
+            F.to_timestamp(F.col("order_delivered_customer_date")),
+        )
+        .withColumn(
+            "order_estimated_delivery_date",
+            F.to_timestamp(F.col("order_estimated_delivery_date")),
+        )
     )
 
     df = (

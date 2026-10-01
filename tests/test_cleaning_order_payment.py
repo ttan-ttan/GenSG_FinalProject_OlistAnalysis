@@ -11,8 +11,7 @@ import pytest
 from pyspark.sql.types import StringType, StructField, StructType
 
 # so tests can import from src/ regardless of where pytest is run from
-sys.path.append(os.path.abspath(os.path.join(
-    os.path.dirname(__file__), "..", "src")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
 
 # Raw input is all-strings, matching how the CSV is actually read.
@@ -49,8 +48,7 @@ def make_raw_df(spark, rows=None):
 
 def test_missing_required_column_raises(spark):
     # df is missing payment_sequential/installments/value entirely
-    df = spark.createDataFrame(
-        [(ID_A, "boleto")], ["order_id", "payment_type"])
+    df = spark.createDataFrame([(ID_A, "boleto")], ["order_id", "payment_type"])
     with pytest.raises(ValueError):
         clean_order_payments(df)
 
@@ -59,8 +57,7 @@ def test_lowercases_and_strips_strings(spark):
     # every row's order_id/payment_type should already be clean after processing
     result = clean_order_payments(make_raw_df(spark)).collect()
     assert all(r["order_id"] == r["order_id"].lower() for r in result)
-    assert all(r["payment_type"] == r["payment_type"].strip().lower()
-               for r in result)
+    assert all(r["payment_type"] == r["payment_type"].strip().lower() for r in result)
 
 
 def test_drops_rows_with_null_required_fields(spark):
@@ -143,8 +140,7 @@ def test_not_defined_kept_by_default_and_droppable(spark):
         (ID_B, "1", "boleto", "1", "20.0"),
     ]
     assert clean_order_payments(make_raw_df(spark, rows)).count() == 2
-    dropped = clean_order_payments(
-        make_raw_df(spark, rows), drop_not_defined=True)
+    dropped = clean_order_payments(make_raw_df(spark, rows), drop_not_defined=True)
     assert [r["order_id"] for r in dropped.collect()] == [ID_B]
 
 

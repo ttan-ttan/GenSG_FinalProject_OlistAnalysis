@@ -52,8 +52,7 @@ def validate_fact_orders_gold(df: DataFrame) -> DataFrame:
 
     dup_order_ids = df.groupBy("order_id").count().filter(F.col("count") > 1)
     if dup_order_ids.count() > 0:
-        raise ValueError(
-            "Duplicate order_id values detected in Gold fact orders")
+        raise ValueError("Duplicate order_id values detected in Gold fact orders")
 
     invalid_statuses = df.filter(
         F.col("order_status").isin(list(VALID_STATUSES)).__invert__()
@@ -75,12 +74,18 @@ def validate_fact_orders_gold(df: DataFrame) -> DataFrame:
         (
             "order_delivered_customer_date occurs before order_delivered_carrier_date",
             F.col("order_delivered_customer_date").isNotNull()
-            & (F.col("order_delivered_customer_date") < F.col("order_delivered_carrier_date")),
+            & (
+                F.col("order_delivered_customer_date")
+                < F.col("order_delivered_carrier_date")
+            ),
         ),
         (
             "order_estimated_delivery_date occurs before order_purchase_timestamp",
             F.col("order_estimated_delivery_date").isNotNull()
-            & (F.col("order_estimated_delivery_date") < F.col("order_purchase_timestamp")),
+            & (
+                F.col("order_estimated_delivery_date")
+                < F.col("order_purchase_timestamp")
+            ),
         ),
     ]
 

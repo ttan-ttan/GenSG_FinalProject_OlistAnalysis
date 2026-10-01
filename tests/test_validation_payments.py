@@ -78,8 +78,12 @@ def test_wrong_data_types_flagged(spark):
     )
     report = validate_order_payments(df, strict=False)
     assert report["passed"] is False
-    assert any("payment_value" in e and "expected 'double'" in e for e in report["errors"])
-    assert any("payment_sequential" in e and "expected 'int'" in e for e in report["errors"])
+    assert any(
+        "payment_value" in e and "expected 'double'" in e for e in report["errors"]
+    )
+    assert any(
+        "payment_sequential" in e and "expected 'int'" in e for e in report["errors"]
+    )
 
 
 def test_wrong_data_types_raise_in_strict_mode(spark):
@@ -153,9 +157,7 @@ def test_zero_value_is_warning_not_error(spark):
     report = validate_order_payments(make_clean_df(spark), strict=False)
     assert report["passed"] is True
     assert any("payment_value == 0" in w for w in report["warnings"])
-    assert any(
-        "payment_installments == 0" in w for w in report["warnings"]
-    )
+    assert any("payment_installments == 0" in w for w in report["warnings"])
 
 
 def test_zero_credit_card_installments_are_an_error(spark):
@@ -169,9 +171,7 @@ def test_zero_non_financed_installments_remain_a_warning(spark):
     rows = [(ID_A, 1, "voucher", 0, 0.0)]
     report = validate_order_payments(make_clean_df(spark, rows), strict=False)
     assert report["passed"] is True
-    assert any(
-        "payment_installments == 0" in warning for warning in report["warnings"]
-    )
+    assert any("payment_installments == 0" in warning for warning in report["warnings"])
 
 
 def test_strict_mode_raises_with_error_details(spark):

@@ -7,7 +7,7 @@ import pandas as pd
 from src.cleaning_Validate_product_category import (
     sanitize_category_name,
     clean_category_dataframe,
-    validate_category_dataframe
+    validate_category_dataframe,
 )
 
 
@@ -19,10 +19,20 @@ def test_sanitize_category_name():
 
 
 def test_clean_category_dataframe():
-    raw_data = pd.DataFrame({
-        "product_category_name": [" perfumaria ", " perfumaria ", "cama_mesa_banho"],
-        "product_category_name_english": ["perfumery", "perfumery", "bed_bath_table"]
-    })
+    raw_data = pd.DataFrame(
+        {
+            "product_category_name": [
+                " perfumaria ",
+                " perfumaria ",
+                "cama_mesa_banho",
+            ],
+            "product_category_name_english": [
+                "perfumery",
+                "perfumery",
+                "bed_bath_table",
+            ],
+        }
+    )
 
     cleaned_df = clean_category_dataframe(raw_data)
 
@@ -33,10 +43,12 @@ def test_clean_category_dataframe():
 
 
 def test_validate_category_dataframe():
-    valid_df = pd.DataFrame({
-        "product_category_name": ["perfumaria", "esporte_lazer"],
-        "product_category_name_english": ["Perfumery", "Sports Leisure"]
-    })
+    valid_df = pd.DataFrame(
+        {
+            "product_category_name": ["perfumaria", "esporte_lazer"],
+            "product_category_name_english": ["Perfumery", "Sports Leisure"],
+        }
+    )
 
     errors = validate_category_dataframe(valid_df)
     assert len(errors) == 0  # No errors expected

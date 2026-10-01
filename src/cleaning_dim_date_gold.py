@@ -4,24 +4,31 @@ from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
 
-def build_dim_date(df: DataFrame, timestamp_col: str = "order_purchase_timestamp") -> DataFrame:
+def build_dim_date(
+    df: DataFrame, timestamp_col: str = "order_purchase_timestamp"
+) -> DataFrame:
     """Build a date dimension from a timestamp column."""
-    date_df = df.select(F.to_date(F.col(timestamp_col)
-                                  ).alias("calendar_date")).dropna()
+    date_df = df.select(F.to_date(F.col(timestamp_col)).alias("calendar_date")).dropna()
     date_df = date_df.distinct().orderBy("calendar_date")
 
     return (
-        date_df
-        .withColumn("year_num", F.year("calendar_date"))
+        date_df.withColumn("year_num", F.year("calendar_date"))
         .withColumn("month_num", F.month("calendar_date"))
         .withColumn("month_name", F.date_format("calendar_date", "MMMM"))
         .withColumn("day_num", F.dayofmonth("calendar_date"))
         .withColumn("day_of_week_num", F.dayofweek("calendar_date"))
-        .withColumn("is_weekend", F.when(F.dayofweek("calendar_date").isin(1, 7), F.lit(True)).otherwise(F.lit(False)))
+        .withColumn(
+            "is_weekend",
+            F.when(F.dayofweek("calendar_date").isin(1, 7), F.lit(True)).otherwise(
+                F.lit(False)
+            ),
+        )
     )
 
 
-def clean_dim_date_gold(df: DataFrame, timestamp_col: str = "order_purchase_timestamp") -> DataFrame:
+def clean_dim_date_gold(
+    df: DataFrame, timestamp_col: str = "order_purchase_timestamp"
+) -> DataFrame:
     """Clean date dimension inputs by removing null timestamps and standardizing output fields."""
     return build_dim_date(df, timestamp_col)
 

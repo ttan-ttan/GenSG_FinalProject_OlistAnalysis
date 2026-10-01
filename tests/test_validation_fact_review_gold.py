@@ -6,10 +6,24 @@ from src.validation_fact_review_gold import validate_fact_review_gold
 def make_valid_df(spark):
     return spark.createDataFrame(
         [
-            ("r1", "o1", 5, "Good", "Nice order",
-             "2018-01-18 00:00:00", "2018-01-18 21:46:59"),
-            ("r2", "o2", 3, "Okay", "Average",
-             "2018-01-19 00:00:00", "2018-01-19 04:00:00"),
+            (
+                "r1",
+                "o1",
+                5,
+                "Good",
+                "Nice order",
+                "2018-01-18 00:00:00",
+                "2018-01-18 21:46:59",
+            ),
+            (
+                "r2",
+                "o2",
+                3,
+                "Okay",
+                "Average",
+                "2018-01-19 00:00:00",
+                "2018-01-19 04:00:00",
+            ),
         ],
         [
             "review_id",
@@ -39,8 +53,17 @@ def test_validate_fact_review_gold_rejects_invalid_score(spark):
 def test_validate_fact_review_gold_rejects_duplicate_review_order_key(spark):
     df = make_valid_df(spark).union(
         spark.createDataFrame(
-            [("r1", "o1", 5, "Good", "Nice order",
-              "2018-01-18 00:00:00", "2018-01-18 21:46:59")],
+            [
+                (
+                    "r1",
+                    "o1",
+                    5,
+                    "Good",
+                    "Nice order",
+                    "2018-01-18 00:00:00",
+                    "2018-01-18 21:46:59",
+                )
+            ],
             [
                 "review_id",
                 "order_id",

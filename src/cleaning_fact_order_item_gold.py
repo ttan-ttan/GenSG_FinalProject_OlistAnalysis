@@ -16,8 +16,7 @@ REQUIRED_COLUMNS = [
 
 def clean_fact_order_item_gold(df: DataFrame) -> DataFrame:
     """Clean the Gold fact order-item table."""
-    df = df.select(
-        *[c.strip().lower() if c in df.columns else c for c in df.columns])
+    df = df.select(*[c.strip().lower() if c in df.columns else c for c in df.columns])
     missing = [c for c in REQUIRED_COLUMNS if c not in df.columns]
     if missing:
         raise ValueError(f"Missing required columns: {missing}")

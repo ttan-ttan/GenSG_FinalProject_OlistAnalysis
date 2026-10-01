@@ -60,7 +60,8 @@ def test_validate_fact_orders_gold_rejects_invalid_status(spark):
     df = make_valid_df(spark)
     bad = df.withColumn("order_status", df["order_status"].cast("string"))
     bad = bad.withColumn(
-        "order_status", bad["order_status"].replace("delivered", "unknown"))
+        "order_status", bad["order_status"].replace("delivered", "unknown")
+    )
     with pytest.raises(ValueError):
         validate_fact_orders_gold(bad)
 

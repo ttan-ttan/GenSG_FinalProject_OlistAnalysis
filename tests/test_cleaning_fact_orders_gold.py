@@ -90,4 +90,5 @@ def test_clean_fact_orders_gold_casts_timestamps_and_keeps_valid_rows(spark):
     assert result.count() == 1
     assert result.first()["order_id"] == "ord_003"
     assert str(result.first()["order_purchase_timestamp"]).endswith(
-        "2024-02-10 12:00:00")
+        "2024-02-10 12:00:00"
+    )

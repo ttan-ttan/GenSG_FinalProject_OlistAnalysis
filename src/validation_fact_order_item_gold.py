@@ -23,11 +23,9 @@ def validate_fact_order_item_gold(df: DataFrame) -> DataFrame:
     key_cols = ["order_id", "order_item_id"]
     for col in key_cols + ["product_id", "seller_id"]:
         if df.filter(F.col(col).isNull()).count() > 0:
-            raise ValueError(
-                f"Null critical field in Gold fact order item: {col}")
+            raise ValueError(f"Null critical field in Gold fact order item: {col}")
 
-    dup = df.groupBy("order_id", "order_item_id").count().filter(
-        F.col("count") > 1)
+    dup = df.groupBy("order_id", "order_item_id").count().filter(F.col("count") > 1)
     if dup.count() > 0:
         raise ValueError("Duplicate order_id/order_item_id pair detected")
 
