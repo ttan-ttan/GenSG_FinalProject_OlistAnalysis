@@ -1,5 +1,5 @@
 name: Manually Trigger Fabric Pipeline
-
+# Kept for history. CI.yml is the active workflow.
 on:
   workflow_dispatch:
 
