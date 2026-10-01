@@ -1,10 +1,56 @@
-"""
-VS Code Module: cleaning_Validate_product_category.py
-Handles sanitization, manual missing translations, deduplication, and validation for product categories.
-"""
+"""Cleaning and validation helpers for product-category translations."""
+
+import re
+
+import pandas as pd
 
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
+
+
+def sanitize_category_name(value: object) -> str:
+    """Return the normalized category key used by the translation table."""
+    if value is None or not str(value).strip():
+        return "unknown"
+    return re.sub(r"[_-]+", " ", str(value).strip().lower())
+
+
+def clean_category_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """Clean and deduplicate a Pandas category-translation DataFrame."""
+    required = {"product_category_name", "product_category_name_english"}
+    missing = sorted(required - set(df.columns))
+    if missing:
+        raise ValueError(f"Missing required columns: {missing}")
+
+    cleaned = df.copy()
+    cleaned["product_category_name"] = cleaned["product_category_name"].map(
+        sanitize_category_name
+    )
+    cleaned["product_category_name_english"] = (
+        cleaned["product_category_name_english"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.title()
+    )
+    return cleaned.drop_duplicates(subset=["product_category_name"]).reset_index(
+        drop=True
+    )
+
+
+def validate_category_dataframe(df: pd.DataFrame) -> list[str]:
+    """Return data-quality errors for a Pandas category-translation DataFrame."""
+    errors = []
+    required = {"product_category_name", "product_category_name_english"}
+    missing = sorted(required - set(df.columns))
+    if missing:
+        return [f"Missing required columns: {missing}"]
+
+    if df["product_category_name"].isna().any():
+        errors.append("product_category_name contains null values")
+    if df["product_category_name"].duplicated().any():
+        errors.append("product_category_name contains duplicates")
+    return errors
 
 
 def clean_category_translation(df: DataFrame) -> DataFrame:
