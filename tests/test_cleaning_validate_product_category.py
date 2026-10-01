@@ -4,7 +4,7 @@ Execute with: `pytest tests/`
 """
 
 import pandas as pd
-from src.cleaning_Validate_product_category import (
+from src.cleaning_validate_product_category import (
     sanitize_category_name,
     clean_category_dataframe,
     validate_category_dataframe,
