@@ -1,6 +1,7 @@
 """ TESTS for validation_fact_order_item_gold.py """
 
 import pytest
+from pyspark.sql import functions as F
 
 from src.validation_fact_order_item_gold import validate_fact_order_item_gold
 
@@ -32,7 +33,7 @@ def test_validate_fact_order_item_gold_accepts_valid_data(spark):
 
 def test_validate_fact_order_item_gold_rejects_null_keys(spark):
     """Test that validate_fact_order_item_gold raises an error for null values in key columns."""
-    df = make_valid_df(spark).withColumn("seller_id", None)
+    df = make_valid_df(spark).withColumn("seller_id", F.lit(None))
     with pytest.raises(ValueError):
         validate_fact_order_item_gold(df)
 

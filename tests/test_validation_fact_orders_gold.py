@@ -1,6 +1,7 @@
 """ TESTS for validation_fact_orders_gold.py """
 
 import pytest
+from pyspark.sql import functions as F
 
 from src.validation_fact_orders_gold import validate_fact_orders_gold
 
@@ -26,7 +27,7 @@ def make_valid_df(spark):
                 "cust_001",
                 "delivered",
                 "2024-01-01 10:00:00",
-                "2024-01-01 09:00:00",
+                "2024-01-01 11:00:00",
                 "2024-01-02 10:00:00",
                 "2024-01-03 10:00:00",
                 "2024-01-05 10:00:00",
@@ -64,10 +65,7 @@ def test_validate_fact_orders_gold_rejects_duplicate_order_ids(spark):
 def test_validate_fact_orders_gold_rejects_invalid_status(spark):
     """Test that validate_fact_orders_gold raises an error for invalid order_status values."""
     df = make_valid_df(spark)
-    bad = df.withColumn("order_status", df["order_status"].cast("string"))
-    bad = bad.withColumn(
-        "order_status", bad["order_status"].replace("delivered", "unknown")
-    )
+    bad = df.withColumn("order_status", F.lit("unknown"))
     with pytest.raises(ValueError):
         validate_fact_orders_gold(bad)
 
@@ -75,7 +73,7 @@ def test_validate_fact_orders_gold_rejects_invalid_status(spark):
 def test_validate_fact_orders_gold_rejects_null_key_fields(spark):
     """Test that validate_fact_orders_gold raises an error for null values in key columns."""
     df = make_valid_df(spark)
-    bad = df.withColumn("customer_id", None)
+    bad = df.withColumn("customer_id", F.lit(None))
     with pytest.raises(ValueError):
         validate_fact_orders_gold(bad)
 

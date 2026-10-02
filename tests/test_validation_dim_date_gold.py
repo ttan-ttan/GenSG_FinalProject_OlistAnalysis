@@ -1,8 +1,21 @@
 """ TESTS for validation_dim_date_gold.py   """
 
 import pytest
+from pyspark.sql.types import BooleanType, IntegerType, StringType, StructField, StructType
 
 from src.validation_dim_date_gold import validate_dim_date_gold
+
+DIM_DATE_SCHEMA = StructType(
+    [
+        StructField("calendar_date", StringType(), True),
+        StructField("year_num", IntegerType(), True),
+        StructField("month_num", IntegerType(), True),
+        StructField("month_name", StringType(), True),
+        StructField("day_num", IntegerType(), True),
+        StructField("day_of_week_num", IntegerType(), True),
+        StructField("is_weekend", BooleanType(), True),
+    ]
+)
 
 
 def make_valid_dim(spark):
@@ -55,15 +68,7 @@ def test_dim_date_gold_rejects_null_or_invalid_date(spark):
     invalid calendar_date values."""
     df = spark.createDataFrame(
         [(None, 2018, 1, "January", 1, 1, False)],
-        [
-            "calendar_date",
-            "year_num",
-            "month_num",
-            "month_name",
-            "day_num",
-            "day_of_week_num",
-            "is_weekend",
-        ],
+        schema=DIM_DATE_SCHEMA,
     )
     with pytest.raises(ValueError):
         validate_dim_date_gold(df)
