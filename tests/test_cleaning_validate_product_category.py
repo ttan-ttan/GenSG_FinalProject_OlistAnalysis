@@ -12,6 +12,7 @@ from src.cleaning_validate_product_category import (
 
 
 def test_sanitize_category_name():
+    """Test that sanitize_category_name normalizes category names correctly."""
     assert sanitize_category_name("  Cama_Mesa_Banho  ") == "cama mesa banho"
     assert sanitize_category_name("ELETRODOMÉSTICOS_2") == "eletrodomésticos 2"
     assert sanitize_category_name(None) == "unknown"
@@ -19,6 +20,7 @@ def test_sanitize_category_name():
 
 
 def test_clean_category_dataframe():
+    """Test that clean_category_dataframe cleans and deduplicates a Pandas DataFrame."""
     raw_data = pd.DataFrame(
         {
             "product_category_name": [
@@ -43,6 +45,7 @@ def test_clean_category_dataframe():
 
 
 def test_validate_category_dataframe():
+    """Test that validate_category_dataframe returns errors for missing or invalid data."""
     valid_df = pd.DataFrame(
         {
             "product_category_name": ["perfumaria", "esporte_lazer"],

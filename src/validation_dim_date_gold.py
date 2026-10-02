@@ -1,5 +1,6 @@
 """ validation_dim_date_gold
 This module contains functions to validate the Gold date dimension table."""
+
 from __future__ import annotations
 
 from pyspark.sql import DataFrame
@@ -31,13 +32,11 @@ def validate_dim_date_gold(df: DataFrame) -> DataFrame:
 
     for col in ["year_num", "month_num", "day_num", "day_of_week_num"]:
         if df.filter(F.col(col).isNull()).count() > 0:
-            raise ValueError(
-                f"Null critical field in Gold date dimension: {col}")
+            raise ValueError(f"Null critical field in Gold date dimension: {col}")
 
     if (
         df.filter(
-            ~F.col("calendar_date").cast(
-                "string").rlike(r"^\d{4}-\d{2}-\d{2}$")
+            ~F.col("calendar_date").cast("string").rlike(r"^\d{4}-\d{2}-\d{2}$")
         ).count()
         > 0
     ):

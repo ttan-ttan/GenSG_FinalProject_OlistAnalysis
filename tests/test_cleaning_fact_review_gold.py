@@ -1,9 +1,10 @@
 """ test_cleaning_fact_review_gold  """
+
 from src.cleaning_fact_review_gold import clean_fact_review_gold
 
 
 def test_clean_fact_review_gold_keeps_valid_rows(spark):
-    """ Test that clean_fact_review_gold keeps only valid rows and removes duplicates."""
+    """Test that clean_fact_review_gold keeps only valid rows and removes duplicates."""
     df = spark.createDataFrame(
         [
             (

@@ -1,5 +1,6 @@
 """ cleaning_dim_date_gold
 This module contains functions to clean and build the Gold date dimension table."""
+
 from __future__ import annotations
 
 from pyspark.sql import DataFrame

@@ -60,8 +60,7 @@ def clean_category_translation(df: DataFrame) -> DataFrame:
     cleaned_df = (
         df.dropna(subset=["product_category_name"])
         .withColumn(
-            "product_category_name", F.lower(
-                F.trim(F.col("product_category_name")))
+            "product_category_name", F.lower(F.trim(F.col("product_category_name")))
         )
         .withColumn(
             "product_category_name",
@@ -88,8 +87,7 @@ def clean_category_translation(df: DataFrame) -> DataFrame:
     )
 
     # 3. Combine and remove any potential duplicates introduced by patching
-    final_df = cleaned_df.union(patch_df).dropDuplicates([
-        "product_category_name"])
+    final_df = cleaned_df.union(patch_df).dropDuplicates(["product_category_name"])
 
     return final_df
 

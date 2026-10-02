@@ -1,5 +1,6 @@
 """ cleaning_fact_review_gold
 This module contains functions to clean the Gold fact review table."""
+
 from __future__ import annotations
 
 from pyspark.sql import DataFrame
@@ -18,8 +19,7 @@ REQUIRED_COLUMNS = [
 
 def clean_fact_review_gold(df: DataFrame) -> DataFrame:
     """Clean the Gold fact review table."""
-    df = df.select(
-        *[c.strip().lower() if c in df.columns else c for c in df.columns])
+    df = df.select(*[c.strip().lower() if c in df.columns else c for c in df.columns])
     missing = [c for c in REQUIRED_COLUMNS if c not in df.columns]
     if missing:
         raise ValueError(f"Missing required columns: {missing}")
@@ -41,12 +41,10 @@ def clean_fact_review_gold(df: DataFrame) -> DataFrame:
             ),
         )
         .withColumn(
-            "review_creation_date", F.to_timestamp(
-                F.col("review_creation_date"))
+            "review_creation_date", F.to_timestamp(F.col("review_creation_date"))
         )
         .withColumn(
-            "review_answer_timestamp", F.to_timestamp(
-                F.col("review_answer_timestamp"))
+            "review_answer_timestamp", F.to_timestamp(F.col("review_answer_timestamp"))
         )
     )
 

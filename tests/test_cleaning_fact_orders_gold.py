@@ -1,4 +1,5 @@
 """ test_cleaning_fact_orders_gold  """
+
 from pyspark.sql.types import StringType, StructField, StructType
 from src.cleaning_fact_orders_gold import clean_fact_orders_gold
 
@@ -19,7 +20,7 @@ TEST_SCHEMA = StructType(
 
 
 def test_clean_fact_orders_gold_standardizes_and_deduplicates(spark):
-    """ Test that clean_fact_orders_gold standardizes the order_status and removes duplicates."""
+    """Test that clean_fact_orders_gold standardizes the order_status and removes duplicates."""
     df = spark.createDataFrame(
         [
             (
@@ -65,7 +66,7 @@ def test_clean_fact_orders_gold_standardizes_and_deduplicates(spark):
 
 
 def test_clean_fact_orders_gold_casts_timestamps_and_keeps_valid_rows(spark):
-    """ Test that clean_fact_orders_gold casts timestamp columns and keeps only valid rows."""
+    """Test that clean_fact_orders_gold casts timestamp columns and keeps only valid rows."""
     df = spark.createDataFrame(
         [
             (
