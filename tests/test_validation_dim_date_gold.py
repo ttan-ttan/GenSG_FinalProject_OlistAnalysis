@@ -1,6 +1,7 @@
 """ TESTS for validation_dim_date_gold.py   """
 
 import pytest
+from pyspark.sql import functions as F
 from pyspark.sql.types import (
     BooleanType,
     IntegerType,
@@ -28,8 +29,8 @@ def make_valid_dim(spark):
     """Create a valid DataFrame for testing validate_dim_date_gold."""
     return spark.createDataFrame(
         [
-            ("2018-01-01", 2018, 1, "January", 1, 1, False),
-            ("2018-01-02", 2018, 1, "January", 2, 2, False),
+            ("2018-01-01", 2018, 1, "January", 1, 2, False),
+            ("2018-01-02", 2018, 1, "January", 2, 3, False),
         ],
         [
             "calendar_date",
@@ -77,4 +78,20 @@ def test_dim_date_gold_rejects_null_or_invalid_date(spark):
         schema=DIM_DATE_SCHEMA,
     )
     with pytest.raises(ValueError):
+        validate_dim_date_gold(df)
+
+
+def test_dim_date_gold_rejects_impossible_calendar_date(spark):
+    """Reject strings that match the date pattern but are not real dates."""
+    df = make_valid_dim(spark).withColumn(
+        "calendar_date", F.lit("2018-02-30")
+    )
+    with pytest.raises(ValueError, match="Invalid calendar_date value"):
+        validate_dim_date_gold(df)
+
+
+def test_dim_date_gold_rejects_inconsistent_date_attributes(spark):
+    """Reject dimension attributes that do not agree with calendar_date."""
+    df = make_valid_dim(spark).withColumn("month_num", F.lit(2))
+    with pytest.raises(ValueError, match="Inconsistent month_num"):
         validate_dim_date_gold(df)

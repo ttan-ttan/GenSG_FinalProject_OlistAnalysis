@@ -42,6 +42,45 @@ def test_gold_invalid_state(spark):
         validate_dim_seller_gold(df)
 
 
+def test_gold_invalid_zip_prefix(spark):
+    """ZIP prefixes below the cleaner's valid range should fail validation."""
+    df = spark.createDataFrame(
+        [("S001", "sao paulo", "SP", 999)],
+        ["seller_id", "seller_city", "seller_state", "seller_zip_code_prefix"],
+    )
+    with pytest.raises(ValueError, match="seller_zip_code_prefix"):
+        validate_dim_seller_gold(df)
+
+
+def test_gold_rejects_zip_prefix_above_maximum(spark):
+    """ZIP prefixes above the valid range should fail validation."""
+    df = spark.createDataFrame(
+        [("S001", "sao paulo", "SP", 100000)],
+        ["seller_id", "seller_city", "seller_state", "seller_zip_code_prefix"],
+    )
+    with pytest.raises(ValueError, match="seller_zip_code_prefix"):
+        validate_dim_seller_gold(df)
+
+
+def test_gold_rejects_unnormalized_city(spark):
+    """Gold city values should match the cleaner's lowercase trimmed format."""
+    df = spark.createDataFrame(
+        [("S001", " Sao Paulo ", "SP", 12345)],
+        ["seller_id", "seller_city", "seller_state", "seller_zip_code_prefix"],
+    )
+    with pytest.raises(ValueError, match="seller_city is not normalized"):
+        validate_dim_seller_gold(df)
+
+
+def test_gold_missing_required_column(spark):
+    """Missing columns should produce a clear validation error."""
+    df = spark.createDataFrame([("S001", "sao paulo", "SP")], [
+        "seller_id", "seller_city", "seller_state"
+    ])
+    with pytest.raises(ValueError, match="Missing required columns"):
+        validate_dim_seller_gold(df)
+
+
 def test_gold_null_critical_fields(spark):
     """Null critical fields should fail validation."""
     schema = StructType(

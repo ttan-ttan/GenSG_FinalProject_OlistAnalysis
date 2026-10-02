@@ -46,11 +46,13 @@ def _silver(spark, rows):
 
 
 def _validate(spark, dim_rows, silver_rows):
+    """Build test DataFrames and run Gold validation."""
     return validate_dim_product_gold(_dim(spark, dim_rows), _silver(spark, silver_rows))
 
 
 # Valid cases
 def test_valid_passes_and_returns_dim(spark):
+    """Return a valid product dimension unchanged."""
     dim = _dim(spark, [(P1, "perfumery", 10.0), (P2, "bed bath table", None)])
     silver = _silver(spark, [(P1, "perfumaria"), (P2, "cama mesa banho")])
     out = validate_dim_product_gold(dim, silver)
@@ -59,11 +61,13 @@ def test_valid_passes_and_returns_dim(spark):
 
 
 def test_missing_native_category_allows_null_english(spark):
+    """Allow a null English category when the native category is null."""
     assert _validate(spark, [(P1, None, 10.0)], [(P1, None)]).count() == 1
 
 
 @pytest.mark.parametrize("category", sorted(KNOWN_UNTRANSLATED))
 def test_known_untranslated_allows_null_english(spark, category):
+    """Allow null English values for the known untranslated categories."""
     assert _validate(spark, [(P1, None, 10.0)], [(P1, category)]).count() == 1
 
 
@@ -85,6 +89,16 @@ def test_known_untranslated_allows_null_english(spark, category):
         ([(P1, "perfumery", 0.0)], [(P1, "perfumaria")], "baseline_price_med"),
         ([(P1, "perfumery", -1.0)], [(P1, "perfumaria")], "baseline_price_med"),
         (
+            [(P1, "perfumery", float("nan"))],
+            [(P1, "perfumaria")],
+            "baseline_price_med",
+        ),
+        (
+            [(P1, "perfumery", float("inf"))],
+            [(P1, "perfumaria")],
+            "baseline_price_med",
+        ),
+        (
             [(P1, "perfumery", 1.0), (P1, "perfumery", 1.0)],
             [(P1, "perfumaria")],
             "duplicate product_id",
@@ -98,22 +112,34 @@ def test_known_untranslated_allows_null_english(spark, category):
     ],
 )
 def test_rule_violation_raises(spark, dim_rows, silver_rows, expected):
+    """Raise when any parameterized product-dimension rule is violated."""
     with pytest.raises(ValueError, match=expected):
         _validate(spark, dim_rows, silver_rows)
 
 
 def test_null_product_id_raises(spark):
+    """Reject a null product key."""
     with pytest.raises(ValueError, match="product_id is null"):
         _validate(spark, [(None, "perfumery", 1.0)], [(P1, "perfumaria")])
 
 
 def test_missing_column_raises(spark):
+    """Reject dimensions missing a required Gold output column."""
     dim = _dim(spark, [(P1, "perfumery", 1.0)]).drop("baseline_price_med")
     with pytest.raises(ValueError, match="missing column"):
         validate_dim_product_gold(dim, _silver(spark, [(P1, "perfumaria")]))
 
 
+def test_missing_silver_reference_column_raises(spark):
+    """Reject Silver references missing a required category column."""
+    dim = _dim(spark, [(P1, "perfumery", 1.0)])
+    silver = _silver(spark, [(P1, "perfumaria")]).drop("product_category_name")
+    with pytest.raises(ValueError, match="Silver products missing column"):
+        validate_dim_product_gold(dim, silver)
+
+
 def test_all_failures_reported_together(spark):
+    """Report multiple product-dimension rule failures in one exception."""
     with pytest.raises(ValueError) as exc:
         _validate(spark, [(P1, None, -1.0)], [(P1, "perfumaria")])
     assert "new untranslated category" in str(exc.value)

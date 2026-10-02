@@ -7,6 +7,8 @@ and other integrity requirements prior to downstream analysis.
 
 from __future__ import annotations
 
+from operator import invert
+
 import pyspark.sql.functions as F
 from pyspark.sql import DataFrame
 
@@ -52,10 +54,11 @@ def validate_fact_orders_gold(df: DataFrame) -> DataFrame:
 
     dup_order_ids = df.groupBy("order_id").count().filter(F.col("count") > 1)
     if dup_order_ids.count() > 0:
-        raise ValueError("Duplicate order_id values detected in Gold fact orders")
+        raise ValueError(
+            "Duplicate order_id values detected in Gold fact orders")
 
     invalid_statuses = df.filter(
-        F.col("order_status").isin(list(VALID_STATUSES)).__invert__()
+        invert(F.col("order_status").isin(list(VALID_STATUSES)))
     )
     if invalid_statuses.count() > 0:
         raise ValueError("Invalid order_status detected in Gold fact orders")

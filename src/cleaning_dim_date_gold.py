@@ -50,5 +50,15 @@ def clean_dim_date_gold(
     return build_dim_date(df, timestamp_col)
 
 
+def run_clean(spark) -> DataFrame:
+    """Build and write the Gold date dimension from the Silver orders table."""
+    orders_df = spark.read.table("orders_silver")
+    gold_df = clean_dim_date_gold(orders_df)
+    gold_df.write.format("delta").mode(
+        "overwrite").saveAsTable("gold_dim_date")
+    print("Gold dimension table 'gold_dim_date' created successfully.")
+    return gold_df
+
+
 # Common alias used by the project naming pattern.
 clean_date_gold = clean_dim_date_gold

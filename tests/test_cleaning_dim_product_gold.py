@@ -58,8 +58,8 @@ def _products(spark, rows):
     return spark.createDataFrame(full, PRODUCTS_SCHEMA)
 
 
-@pytest.fixture
-def translation(spark):
+@pytest.fixture(name="translation_data")
+def _translation_fixture(spark):
     """Shaped like silver_product_category (clean_category_translation output)."""
     return spark.createDataFrame(
         [("perfumaria", "Perfumery"), ("cama mesa banho", "Bed_bath_table")],
@@ -68,17 +68,21 @@ def translation(spark):
 
 
 def _english(df):
+    """Map product IDs to their English categories."""
     return {r["product_id"]: r["product_category_name_english"] for r in df.collect()}
 
 
 def _baseline(df):
+    """Map product IDs to their calculated baseline prices."""
     return {r["product_id"]: r["baseline_price_med"] for r in df.collect()}
 
 
 # 1. Translation join
-def test_translation_match_and_misses(spark, translation):
-    products = _products(spark, [(P1, "cama mesa banho"), (P2, "pc gamer"), (P3, None)])
-    result = _english(add_category_english(products, translation))
+def test_translation_match_and_misses(spark, translation_data):
+    """Join translated, untranslated, and uncategorized products."""
+    products = _products(
+        spark, [(P1, "cama mesa banho"), (P2, "pc gamer"), (P3, None)])
+    result = _english(add_category_english(products, translation_data))
     assert result == {P1: "bed bath table", P2: None, P3: None}
 
 
@@ -93,12 +97,15 @@ def test_translation_match_and_misses(spark, translation):
     ],
 )
 def test_english_formatted_lowercase_with_spaces(spark, raw, expected):
+    """Normalize English category values into lowercase space-separated text."""
     products = _products(spark, [(P1, "x")])
-    translation = spark.createDataFrame([("x", raw)], TRANSLATION_SCHEMA)
-    assert _english(add_category_english(products, translation)) == {P1: expected}
+    translation_data = spark.createDataFrame([("x", raw)], TRANSLATION_SCHEMA)
+    assert _english(add_category_english(
+        products, translation_data)) == {P1: expected}
 
 
 def test_translation_join_does_not_fan_out(spark):
+    """Avoid multiplying products when translations contain duplicate keys."""
     dup = spark.createDataFrame(
         [("perfumaria", "perfumery"), ("perfumaria", "perfume")], TRANSLATION_SCHEMA
     )
@@ -119,6 +126,7 @@ def _items_orders(spark, rows):
 
 
 def test_baseline_is_median(spark):
+    """Calculate the per-product median from eligible non-event orders."""
     items, orders = _items_orders(
         spark,
         [
@@ -129,11 +137,13 @@ def test_baseline_is_median(spark):
             ("o5", P2, 15.0, "delivered", "2017-10-01 11:00:00"),
         ],
     )
-    assert _baseline(compute_baseline_price(items, orders)) == {P1: 20.0, P2: 12.5}
+    assert _baseline(compute_baseline_price(
+        items, orders)) == {P1: 20.0, P2: 12.5}
 
 
 @pytest.mark.parametrize("status", ["canceled", "unavailable"])
 def test_baseline_excludes_statuses(spark, status):
+    """Exclude canceled and unavailable orders from baseline calculations."""
     items, orders = _items_orders(
         spark,
         [
@@ -154,6 +164,7 @@ def test_baseline_excludes_statuses(spark, status):
     ],
 )
 def test_baseline_event_window_boundaries(spark, ts, excluded):
+    """Exclude purchases inside the event window, including its boundaries."""
     items, orders = _items_orders(
         spark,
         [
@@ -166,6 +177,7 @@ def test_baseline_event_window_boundaries(spark, ts, excluded):
 
 
 def test_baseline_rounded_to_2dp(spark):
+    """Round the calculated product median to two decimal places."""
     items, orders = _items_orders(
         spark,
         [
@@ -177,7 +189,8 @@ def test_baseline_rounded_to_2dp(spark):
 
 
 # 3. build_dim_product
-def test_build_keeps_all_products_and_schema(spark, translation):
+def test_build_keeps_all_products_and_schema(spark, translation_data):
+    """Keep every product and return the documented output columns."""
     products = _products(spark, [(P1, "perfumaria"), (P2, None)])
     items, orders = _items_orders(
         spark,
@@ -186,7 +199,7 @@ def test_build_keeps_all_products_and_schema(spark, translation):
             ("o2", P1, 20.0, "delivered", "2017-11-24 10:00:00"),
         ],
     )
-    dim = build_dim_product(products, translation, items, orders)
+    dim = build_dim_product(products, translation_data, items, orders)
 
     assert dim.columns == OUTPUT_COLUMNS
     rows = {r["product_id"]: r for r in dim.collect()}
@@ -197,10 +210,11 @@ def test_build_keeps_all_products_and_schema(spark, translation):
     assert rows[P2]["baseline_price_med"] is None  # never sold -> kept, NULL
 
 
-def test_build_product_only_sold_in_event_has_null_baseline(spark, translation):
+def test_build_product_only_sold_in_event_has_null_baseline(spark, translation_data):
+    """Leave the baseline null when a product sold only during the event."""
     products = _products(spark, [(P1, "perfumaria")])
     items, orders = _items_orders(
         spark, [("o1", P1, 10.0, "delivered", "2017-11-25 10:00:00")]
     )
-    row = build_dim_product(products, translation, items, orders).first()
+    row = build_dim_product(products, translation_data, items, orders).first()
     assert row["baseline_price_med"] is None

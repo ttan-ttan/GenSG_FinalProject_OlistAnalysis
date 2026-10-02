@@ -102,3 +102,43 @@ def test_gold_null_critical_fields(spark):
     )
     with pytest.raises(ValueError):
         validate_dim_customer_gold(df)
+
+
+def test_gold_missing_required_column(spark):
+    """Missing columns should produce a clear validation error."""
+    df = spark.createDataFrame(
+        [("C001", "sao paulo", "SP")],
+        ["customer_id", "customer_city", "customer_state"],
+    )
+    with pytest.raises(ValueError, match="Missing required columns"):
+        validate_dim_customer_gold(df)
+
+
+def test_gold_invalid_first_purchase_date(spark):
+    """Unparseable first-purchase dates should not pass validation."""
+    df = spark.createDataFrame(
+        [("C001", "sao paulo", "SP", "not-a-date")],
+        [
+            "customer_id",
+            "customer_city",
+            "customer_state",
+            "customer_first_purchase_date",
+        ],
+    )
+    with pytest.raises(ValueError, match="Invalid customer_first_purchase_date"):
+        validate_dim_customer_gold(df)
+
+
+def test_gold_requires_normalized_city(spark):
+    """Gold city values should match the cleaner's lowercase trimmed format."""
+    df = spark.createDataFrame(
+        [("C001", " Sao Paulo ", "SP", "2020-01-01")],
+        [
+            "customer_id",
+            "customer_city",
+            "customer_state",
+            "customer_first_purchase_date",
+        ],
+    )
+    with pytest.raises(ValueError, match="customer_city is not normalized"):
+        validate_dim_customer_gold(df)

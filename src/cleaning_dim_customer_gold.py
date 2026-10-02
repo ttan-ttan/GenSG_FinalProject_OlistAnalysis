@@ -25,3 +25,22 @@ def clean_customers_gold(df: DataFrame) -> DataFrame:
     )
 
     return df_clean
+
+
+def run_clean(spark):
+    """
+    Entry point required by Gold Runner Notebook.
+    Reads Silver table → applies Gold cleaning → writes Gold table.
+    """
+
+    # 1. Read Silver table
+    df = spark.read.table("customers_silver")
+
+    # 2. Apply Gold cleaning
+    cleaned_df = clean_customers_gold(df)
+
+    # 3. Write Gold table
+    cleaned_df.write.format("delta").mode(
+        "overwrite").saveAsTable("gold_dim_customers")
+
+    print("Gold dimension table 'gold_dim_customers' created successfully.")

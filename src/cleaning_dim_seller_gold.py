@@ -26,9 +26,19 @@ def clean_sellers_gold(df: DataFrame) -> DataFrame:
     df_clean = (
         df.filter(F.col("seller_id").isNotNull())
         .filter(F.col("seller_zip_code_prefix").isNotNull())
-        .filter(F.col("seller_zip_code_prefix") >= 1000)
+        .filter(F.col("seller_zip_code_prefix").between(1000, 99999))
         .withColumn("seller_city", F.lower(F.trim(F.col("seller_city"))))
         .withColumn("seller_state", F.upper(F.trim(F.col("seller_state"))))
     )
 
     return df_clean
+
+
+def run_clean(spark) -> DataFrame:
+    """Build and write the Gold seller dimension from the Silver seller table."""
+    sellers_df = spark.read.table("sellers_silver")
+    gold_df = clean_sellers_gold(sellers_df)
+    gold_df.write.format("delta").mode(
+        "overwrite").saveAsTable("gold_dim_seller")
+    print("Gold dimension table 'gold_dim_seller' created successfully.")
+    return gold_df

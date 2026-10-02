@@ -13,6 +13,8 @@ Checks:
 Raises ValueError listing every failed rule with its row count.
 """
 
+from operator import invert
+
 import pyspark.sql.functions as F
 from pyspark.sql import Column, DataFrame
 
@@ -23,7 +25,8 @@ except ModuleNotFoundError:  # Fabric: Files/src on sys.path
 
 # Native categories with no row in the translation table (normalised format).
 # English NULL is expected for these; any OTHER untranslated category fails.
-KNOWN_UNTRANSLATED = {"pc gamer", "portateis cozinha e preparadores de alimentos"}
+KNOWN_UNTRANSLATED = {"pc gamer",
+                      "portateis cozinha e preparadores de alimentos"}
 
 
 def _count_where(condition: Column) -> Column:
@@ -35,7 +38,15 @@ def validate_dim_product_gold(dim: DataFrame, silver_products: DataFrame) -> Dat
     """Validate gold_dim_product against Silver products. Returns dim unchanged."""
     missing = set(OUTPUT_COLUMNS) - set(dim.columns)
     if missing:
-        raise ValueError(f"gold_dim_product missing column(s): {sorted(missing)}")
+        raise ValueError(
+            f"gold_dim_product missing column(s): {sorted(missing)}")
+    missing_silver = {"product_id", "product_category_name"} - set(
+        silver_products.columns
+    )
+    if missing_silver:
+        raise ValueError(
+            f"Silver products missing column(s): {sorted(missing_silver)}"
+        )
 
     col = F.col
     native = silver_products.select(
@@ -46,12 +57,21 @@ def validate_dim_product_gold(dim: DataFrame, silver_products: DataFrame) -> Dat
     english = col("product_category_name_english")
     rules = {
         "product_id is null": col("product_id").isNull(),
-        "baseline_price_med not positive": col("baseline_price_med") <= 0,
+        "baseline_price_med not positive and finite": col(
+            "baseline_price_med"
+        ).isNotNull()
+        & (
+            F.isnan("baseline_price_med")
+            | (col("baseline_price_med") <= 0)
+            | (F.abs(col("baseline_price_med")) == float("inf"))
+        ),
         "product_category_name_english not normalised": english.isNotNull()
-        & ~english.eqNullSafe(format_english("product_category_name_english")),
+        & invert(
+            english.eqNullSafe(format_english("product_category_name_english"))
+        ),
         "new untranslated category": english.isNull()
         & col("_native").isNotNull()
-        & ~col("_native").isin(*KNOWN_UNTRANSLATED),
+        & invert(col("_native").isin(*KNOWN_UNTRANSLATED)),
     }
     aggs = [_count_where(cond).alias(name) for name, cond in rules.items()]
     aggs += [

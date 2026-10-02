@@ -3,6 +3,8 @@ This module contains functions to validate the Gold fact review table."""
 
 from __future__ import annotations
 
+from operator import invert
+
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
@@ -33,10 +35,11 @@ def validate_fact_review_gold(df: DataFrame) -> DataFrame:
         if df.filter(F.col(col).isNull()).count() > 0:
             raise ValueError(f"Null critical field in Gold fact review: {col}")
 
-    if df.filter(F.col("review_score").between(1, 5).__invert__()).count() > 0:
+    if df.filter(invert(F.col("review_score").between(1, 5))).count() > 0:
         raise ValueError("Invalid review_score detected")
 
-    dup = df.groupBy("review_id", "order_id").count().filter(F.col("count") > 1)
+    dup = df.groupBy("review_id", "order_id").count().filter(
+        F.col("count") > 1)
     if dup.count() > 0:
         raise ValueError("Duplicate review_id/order_id pair detected")
 

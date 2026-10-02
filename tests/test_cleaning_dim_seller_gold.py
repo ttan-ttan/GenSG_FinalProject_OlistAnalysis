@@ -18,11 +18,9 @@ def test_gold_clean_valid(spark):
 
 
 def test_gold_clean_invalid_zip(spark):
-    """ZIP < 1000 should be removed."""
+    """ZIP prefixes outside the valid range should be removed."""
     df = spark.createDataFrame(
-        [
-            ("S001", "sao paulo", "SP", 999),
-        ],
+        [("S001", "sao paulo", "SP", 999), ("S002", "rio", "RJ", 100000)],
         ["seller_id", "seller_city", "seller_state", "seller_zip_code_prefix"],
     )
 
