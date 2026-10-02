@@ -6,7 +6,43 @@
             "cell_type": "markdown",
             "metadata": {},
             "source": [
-                "# Auto-generated notebook\n"
+                "# Gold Fact Order Item\n",
+                "\n",
+                "Reads `Silver_OrderItems` and `Gold_FactOrder`, builds and validates the item-grain fact, and overwrites `Gold_FactOrderItem`. These table names follow the notebook folder names and should be checked against the attached Fabric Lakehouse before running.\n"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "import sys\n",
+                "\n",
+                "files_root = \"/lakehouse/default/Files\"\n",
+                "if files_root not in sys.path:\n",
+                "    sys.path.insert(0, files_root)\n",
+                "\n",
+                "from src.cleaning_fact_order_item_gold import build_fact_order_items_gold\n",
+                "\n",
+                "silver_order_items = spark.table(\"Silver_OrderItems\")\n",
+                "gold_fact_orders = spark.table(\"Gold_FactOrder\")\n",
+                "\n",
+                "gold_fact_order_items = build_fact_order_items_gold(\n",
+                "    silver_order_items,\n",
+                "    gold_fact_orders,\n",
+                ")\n",
+                "\n",
+                "target_table = \"Gold_FactOrderItem\"\n",
+                "(\n",
+                "    gold_fact_order_items.write\n",
+                "    .format(\"delta\")\n",
+                "    .mode(\"overwrite\")\n",
+                "    .option(\"overwriteSchema\", \"true\")\n",
+                "    .saveAsTable(target_table)\n",
+                ")\n",
+                "\n",
+                "print(f\"Wrote {gold_fact_order_items.count()} rows to {target_table}\")"
             ]
         }
     ],
