@@ -3,8 +3,9 @@
 import base64
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import msal
 import requests
@@ -14,7 +15,8 @@ CLIENT_ID = os.environ["CLIENT_ID"].strip()
 CLIENT_SECRET = os.environ["CLIENT_SECRET"]
 WORKSPACE_ID = os.environ["FABRIC_WORKSPACE_ID"].strip()
 NOTEBOOK_ID = os.environ["FABRIC_NOTEBOOK_ID"].strip()
-NOTEBOOK_PATH = Path("notebooks/trigger_pipeline.notebook/notebook-content.json")
+NOTEBOOK_PATH = Path(
+    "notebooks/trigger_pipeline.notebook/notebook-content.json")
 UPLOAD_TIMESTAMP_TAG = "fabric-upload-timestamp"
 
 
@@ -35,9 +37,9 @@ def get_access_token():
 
 
 def append_upload_timestamp(notebook):
-    """Append one visible UTC upload timestamp to the notebook payload."""
-    timestamp = (
-        datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    """Append one visible Singapore-time upload timestamp to the notebook payload."""
+    timestamp = datetime.now(ZoneInfo("Asia/Singapore")).isoformat(
+        timespec="seconds"
     )
     cells = notebook.setdefault("cells", [])
     cells[:] = [
@@ -52,7 +54,9 @@ def append_upload_timestamp(notebook):
                 "language": "markdown",
                 "tags": [UPLOAD_TIMESTAMP_TAG],
             },
-            "source": [f"**Last uploaded to Fabric (UTC):** `{timestamp}`\n"],
+            "source": [
+                f"**Last uploaded to Fabric (Singapore time):** `{timestamp}`\n"
+            ],
         }
     )
     return timestamp
@@ -65,7 +69,8 @@ def main():
 
     notebook = json.loads(NOTEBOOK_PATH.read_text(encoding="utf-8"))
     upload_timestamp = append_upload_timestamp(notebook)
-    print(f"Uploading notebook with timestamp (UTC): {upload_timestamp}")
+    print(
+        f"Uploading notebook with timestamp (Singapore time): {upload_timestamp}")
     payload = base64.b64encode(
         json.dumps(notebook, ensure_ascii=False, indent=2).encode("utf-8")
     ).decode("ascii")
