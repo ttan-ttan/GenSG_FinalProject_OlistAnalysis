@@ -1,7 +1,13 @@
 """ TESTS for validation_dim_date_gold.py   """
 
 import pytest
-from pyspark.sql.types import BooleanType, IntegerType, StringType, StructField, StructType
+from pyspark.sql.types import (
+    BooleanType,
+    IntegerType,
+    StringType,
+    StructField,
+    StructType,
+)
 
 from src.validation_dim_date_gold import validate_dim_date_gold
 
