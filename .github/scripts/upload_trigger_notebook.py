@@ -15,8 +15,7 @@ CLIENT_ID = os.environ["CLIENT_ID"].strip()
 CLIENT_SECRET = os.environ["CLIENT_SECRET"]
 WORKSPACE_ID = os.environ["FABRIC_WORKSPACE_ID"].strip()
 NOTEBOOK_ID = os.environ["FABRIC_NOTEBOOK_ID"].strip()
-NOTEBOOK_PATH = Path(
-    "notebooks/trigger_pipeline.notebook/notebook-content.json")
+NOTEBOOK_PATH = Path("notebooks/trigger_pipeline.notebook/notebook-content.json")
 UPLOAD_TIMESTAMP_TAG = "fabric-upload-timestamp"
 
 
@@ -38,9 +37,7 @@ def get_access_token():
 
 def append_upload_timestamp(notebook):
     """Append one visible Singapore-time upload timestamp to the notebook payload."""
-    timestamp = datetime.now(ZoneInfo("Asia/Singapore")).isoformat(
-        timespec="seconds"
-    )
+    timestamp = datetime.now(ZoneInfo("Asia/Singapore")).isoformat(timespec="seconds")
     cells = notebook.setdefault("cells", [])
     cells[:] = [
         cell
@@ -69,8 +66,7 @@ def main():
 
     notebook = json.loads(NOTEBOOK_PATH.read_text(encoding="utf-8"))
     upload_timestamp = append_upload_timestamp(notebook)
-    print(
-        f"Uploading notebook with timestamp (Singapore time): {upload_timestamp}")
+    print(f"Uploading notebook with timestamp (Singapore time): {upload_timestamp}")
     payload = base64.b64encode(
         json.dumps(notebook, ensure_ascii=False, indent=2).encode("utf-8")
     ).decode("ascii")
