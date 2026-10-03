@@ -1,19 +1,19 @@
 # pylint: disable=E1101
 """
-Creates a unified summary of DQ metrics across all datasets.
+Creates a unified summary of DQ metrics across all datasets inside dbo schema.
 """
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import current_timestamp, col
+from pyspark.sql.functions import col, current_timestamp
 
 
 def generate_dq_summary():
     spark = SparkSession.builder.getOrCreate()
 
-    # 1. Ensure summary table exists
+    # 1. Ensure summary table exists in dbo schema
     spark.sql(
         """
-        CREATE TABLE IF NOT EXISTS dq_summary (
+        CREATE TABLE IF NOT EXISTS dbo.dq_summary (
             dataset STRING,
             silver_before BIGINT,
             silver_after BIGINT,
@@ -22,27 +22,27 @@ def generate_dq_summary():
             dq_pass BOOLEAN,
             log_timestamp TIMESTAMP
         )
-    """
+        """
     )
 
-    # 2. Rowcount logs
+    # 2. Extract Rowcount logs
     rowcount_df = spark.sql(
         """
         SELECT dataset,
                MAX(CASE WHEN stage = 'silver_before_clean' THEN row_count END) AS silver_before,
                MAX(CASE WHEN stage = 'silver_after_clean' THEN row_count END) AS silver_after
-        FROM dq_rowcount_logs
+        FROM dbo.dq_rowcount_logs
         GROUP BY dataset
-    """
+        """
     )
 
-    # 3. Invalid row logs (SUM instead of COUNT)
+    # 3. Extract Invalid summary row logs (uses SUM to aggregate multiple runs)
     invalid_df = spark.sql(
         """
         SELECT dataset, SUM(invalid_rows) AS invalid_rows
-        FROM dq_invalid_logs
+        FROM dbo.dq_invalid_summary_logs
         GROUP BY dataset
-    """
+        """
     )
 
     # 4. Join and calculate metrics safely
@@ -54,8 +54,8 @@ def generate_dq_summary():
         .withColumn("log_timestamp", current_timestamp())
     )
 
-    # 5. Append summary
+    # 5. Overwrite summary table
     summary_df.write.format("delta").mode(
-        "overwrite").saveAsTable("dq_summary")
+        "overwrite").saveAsTable("dbo.dq_summary")
 
-    print("[DQ SUMMARY] Summary table updated.")
+    print("[DQ SUMMARY] Summary table dbo.dq_summary updated.")

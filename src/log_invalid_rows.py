@@ -1,42 +1,41 @@
 # pylint: disable=E1101
 """
-Utility module for logging invalid rows detected during SQL DQ checks.
+Utility module for logging detailed invalid row records into dbo.dq_invalid_row_logs.
 """
 
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import current_timestamp, lit
 
 
 def log_invalid_rows(dataset: str, invalid_df):
     """
-    Logs invalid rows into dq_invalid_logs table.
+    Logs granular invalid rows into dbo.dq_invalid_row_logs table.
 
     Parameters:
         dataset (str): dataset name, e.g. 'customers'
         invalid_df (DataFrame): dataframe containing invalid rows
     """
-
     spark = SparkSession.builder.getOrCreate()
 
-    # Create table if not exists
+    # 1. Ensure table exists in dbo schema
     spark.sql(
         """
-        CREATE TABLE IF NOT EXISTS dq_invalid_logs (
+        CREATE TABLE IF NOT EXISTS dbo.dq_invalid_row_logs (
             dataset STRING,
             column_name STRING,
             rule STRING,
             invalid_value STRING,
             log_timestamp TIMESTAMP
         )
-    """
+        """
     )
 
-    # Convert invalid rows into a flattened log format
-    # (You can customize this depending on your DQ rules)
-    log_df = invalid_df.withColumn(
-        "dataset", spark.sql(f"SELECT '{dataset}'").first()[0]
-    ).withColumn("log_timestamp", spark.sql("SELECT current_timestamp()").first()[0])
+    # 2. Append detailed invalid rows using native Column expressions
+    log_df = invalid_df.withColumn("dataset", lit(dataset)) \
+                       .withColumn("log_timestamp", current_timestamp())
 
-    # Append to delta table
-    log_df.write.format("delta").mode("append").saveAsTable("dq_invalid_logs")
+    log_df.write.format("delta").mode(
+        "append").saveAsTable("dbo.dq_invalid_row_logs")
 
-    print(f"[INVALID LOG] {dataset} → {invalid_df.count()} invalid rows logged.")
+    print(
+        f"[DETAILED INVALID LOG] {dataset} → {invalid_df.count()} invalid rows logged.")
