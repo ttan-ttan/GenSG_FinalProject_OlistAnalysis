@@ -31,11 +31,12 @@ def log_invalid_rows(dataset: str, invalid_df):
     )
 
     # 2. Append detailed invalid rows using native Column expressions
-    log_df = invalid_df.withColumn("dataset", lit(dataset)) \
-                       .withColumn("log_timestamp", current_timestamp())
+    log_df = invalid_df.withColumn("dataset", lit(dataset)).withColumn(
+        "log_timestamp", current_timestamp()
+    )
 
-    log_df.write.format("delta").mode(
-        "append").saveAsTable("dbo.dq_invalid_row_logs")
+    log_df.write.format("delta").mode("append").saveAsTable("dbo.dq_invalid_row_logs")
 
     print(
-        f"[DETAILED INVALID LOG] {dataset} → {invalid_df.count()} invalid rows logged.")
+        f"[DETAILED INVALID LOG] {dataset} → {invalid_df.count()} invalid rows logged."
+    )

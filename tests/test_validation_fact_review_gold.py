@@ -8,35 +8,8 @@ from src.validation_fact_review_gold import validate_fact_review_gold
 def make_valid_df(spark):
     """Create a valid DataFrame for testing validate_fact_review_gold."""
     return spark.createDataFrame(
-        [
-            (
-                "r1",
-                "o1",
-                5,
-                "Good",
-                "Nice order",
-                "2018-01-18 00:00:00",
-                "2018-01-18 21:46:59",
-            ),
-            (
-                "r2",
-                "o2",
-                3,
-                "Okay",
-                "Average",
-                "2018-01-19 00:00:00",
-                "2018-01-19 04:00:00",
-            ),
-        ],
-        [
-            "review_id",
-            "order_id",
-            "review_score",
-            "review_comment_title",
-            "review_comment_message",
-            "review_creation_date",
-            "review_answer_timestamp",
-        ],
+        [("r1", "o1", 20180101, 5), ("r2", "o2", 20180102, 3)],
+        ["review_id", "order_id", "order_date_key", "review_score"],
     )
 
 
@@ -55,31 +28,12 @@ def test_validate_fact_review_gold_rejects_invalid_score(spark):
         validate_fact_review_gold(bad)
 
 
-def test_validate_fact_review_gold_rejects_duplicate_review_order_key(spark):
-    """Test that validate_fact_review_gold raises an error for duplicate review_id
-    and order_id combinations."""
+def test_validate_fact_review_gold_rejects_duplicate_review_id(spark):
+    """review_id is the declared primary key."""
     df = make_valid_df(spark).union(
         spark.createDataFrame(
-            [
-                (
-                    "r1",
-                    "o1",
-                    5,
-                    "Good",
-                    "Nice order",
-                    "2018-01-18 00:00:00",
-                    "2018-01-18 21:46:59",
-                )
-            ],
-            [
-                "review_id",
-                "order_id",
-                "review_score",
-                "review_comment_title",
-                "review_comment_message",
-                "review_creation_date",
-                "review_answer_timestamp",
-            ],
+            [("r1", "o3", 20180103, 4)],
+            ["review_id", "order_id", "order_date_key", "review_score"],
         )
     )
     with pytest.raises(ValueError):

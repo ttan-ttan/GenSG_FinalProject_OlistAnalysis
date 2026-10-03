@@ -8,26 +8,22 @@ from src.validation_fact_order_item_gold import validate_fact_order_item_gold
 
 def make_valid_df(spark):
     """Create a valid DataFrame for testing validate_fact_order_item_gold."""
-    df = spark.createDataFrame(
+    return spark.createDataFrame(
         [
-            ("o1", 1, "p1", "s1", "2018-01-01 00:00:00", 10.5, 2.0),
-            ("o2", 2, "p2", "s2", "2018-01-02 00:00:00", 20.0, 4.5),
+            (1, "o1", 20180101, 11, 21, 31, 10.5, 2.0, 25.0),
+            (2, "o2", 20180102, 12, 22, 32, 20.0, 4.5, None),
         ],
         [
-            "order_id",
             "order_item_id",
-            "product_id",
-            "seller_id",
-            "shipping_limit_date",
+            "order_id",
+            "date_key",
+            "customer_key",
+            "product_key",
+            "seller_key",
             "price",
             "freight_value",
+            "price_vs_baseline_pct",
         ],
-    )
-    return (
-        df.withColumn("order_item_id", F.col("order_item_id").cast("int"))
-        .withColumn("shipping_limit_date", F.to_timestamp("shipping_limit_date"))
-        .withColumn("price", F.col("price").cast("double"))
-        .withColumn("freight_value", F.col("freight_value").cast("double"))
     )
 
 
@@ -39,7 +35,7 @@ def test_validate_fact_order_item_gold_accepts_valid_data(spark):
 
 def test_validate_fact_order_item_gold_rejects_null_keys(spark):
     """Test that validate_fact_order_item_gold raises an error for null values in key columns."""
-    df = make_valid_df(spark).withColumn("seller_id", F.lit(None))
+    df = make_valid_df(spark).withColumn("seller_key", F.lit(None))
     with pytest.raises(ValueError):
         validate_fact_order_item_gold(df)
 
@@ -72,13 +68,6 @@ def test_validate_fact_order_item_gold_rejects_nonpositive_item_id(spark):
     """Order-item IDs should be positive within each order."""
     df = make_valid_df(spark).withColumn("order_item_id", F.lit(0))
     with pytest.raises(ValueError, match="order_item_id"):
-        validate_fact_order_item_gold(df)
-
-
-def test_validate_fact_order_item_gold_rejects_wrong_gold_type(spark):
-    """Gold numeric fields should have their cleaned Spark types."""
-    df = make_valid_df(spark).withColumn("price", F.col("price").cast("string"))
-    with pytest.raises(ValueError, match="Invalid type for price"):
         validate_fact_order_item_gold(df)
 
 

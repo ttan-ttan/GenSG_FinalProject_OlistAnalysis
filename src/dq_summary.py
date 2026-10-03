@@ -11,7 +11,8 @@ def generate_dq_summary():
     spark = SparkSession.builder.getOrCreate()
 
     # 1. Ensure summary table exists
-    spark.sql("""
+    spark.sql(
+        """
         CREATE TABLE IF NOT EXISTS dbo.dq_summary (
             dataset STRING,
             silver_before BIGINT,
@@ -21,10 +22,12 @@ def generate_dq_summary():
             dq_pass BOOLEAN,
             log_timestamp TIMESTAMP
         )
-    """)
+    """
+    )
 
     # 2. Extract latest rowcount logs (corrected)
-    rowcount_df = spark.sql("""
+    rowcount_df = spark.sql(
+        """
         WITH latest AS (
             SELECT
                 dataset,
@@ -43,14 +46,17 @@ def generate_dq_summary():
             MAX(CASE WHEN stage = 'silver_after_clean' AND rn = 1 THEN row_count END) AS silver_after
         FROM latest
         GROUP BY dataset
-    """)
+    """
+    )
 
     # 3. Extract invalid rows summary
-    invalid_df = spark.sql("""
+    invalid_df = spark.sql(
+        """
         SELECT dataset, SUM(invalid_rows) AS invalid_rows
         FROM dbo.dq_invalid_summary_logs
         GROUP BY dataset
-    """)
+    """
+    )
 
     # 4. Join and compute metrics
     summary_df = (
@@ -62,7 +68,6 @@ def generate_dq_summary():
     )
 
     # 5. Overwrite summary table
-    summary_df.write.format("delta").mode(
-        "overwrite").saveAsTable("dbo.dq_summary")
+    summary_df.write.format("delta").mode("overwrite").saveAsTable("dbo.dq_summary")
 
     print("[DQ SUMMARY] Summary table dbo.dq_summary updated.")

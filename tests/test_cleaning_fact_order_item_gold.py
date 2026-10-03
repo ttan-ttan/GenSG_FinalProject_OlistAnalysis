@@ -1,6 +1,9 @@
 """ test_cleaning_fact_order_item_gold  """
 
-from src.cleaning_fact_order_item_gold import clean_fact_order_item_gold
+from src.cleaning_fact_order_item_gold import (
+    build_fact_order_items_gold,
+    clean_fact_order_item_gold,
+)
 
 
 def test_clean_fact_order_item_gold_filters_and_casts(spark):
@@ -55,3 +58,36 @@ def test_clean_fact_order_item_gold_drops_invalid_item_ids_dates_and_amounts(spa
     )
 
     assert clean_fact_order_item_gold(df).count() == 0
+
+
+def test_build_fact_order_items_gold_joins_keys_and_calculates_discount(spark):
+    items = spark.createDataFrame(
+        [("o1", 1, "p1", "s1", "2018-01-01 00:00:00", 15.0, 2.0)],
+        [
+            "order_id",
+            "order_item_id",
+            "product_id",
+            "seller_id",
+            "shipping_limit_date",
+            "price",
+            "freight_value",
+        ],
+    )
+    fact_orders = spark.createDataFrame(
+        [("o1", 20180101, 11)], ["order_id", "date_key", "customer_key"]
+    )
+    dim_product = spark.createDataFrame(
+        [(21, "p1", 20.0)], ["product_key", "product_id", "baseline_price_med"]
+    )
+    dim_seller = spark.createDataFrame([(31, "s1")], ["seller_key", "seller_id"])
+
+    result = build_fact_order_items_gold(
+        items, fact_orders, dim_product, dim_seller
+    ).first()
+
+    assert result["order_item_id"] == 1
+    assert result["date_key"] == 20180101
+    assert result["customer_key"] == 11
+    assert result["product_key"] == 21
+    assert result["seller_key"] == 31
+    assert result["price_vs_baseline_pct"] == 25.0

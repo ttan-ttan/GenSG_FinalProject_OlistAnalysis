@@ -1,7 +1,9 @@
 """ test_cleaning_fact_orders_gold  """
 
+from pyspark.sql import functions as F
 from pyspark.sql.types import StringType, StructField, StructType
-from src.cleaning_fact_orders_gold import clean_fact_orders_gold
+from src.cleaning_fact_orders_gold import build_fact_orders_gold, clean_fact_orders_gold
+from src.cleaning_dim_date_gold import build_dim_date
 
 TEST_COLUMNS = [
     "order_id",
@@ -74,7 +76,7 @@ def test_clean_fact_orders_gold_casts_timestamps_and_keeps_valid_rows(spark):
                 "cust_003",
                 "approved",
                 "2024-02-10 12:00:00",
-                "2024-02-10 11:00:00",
+                "2024-02-10 13:00:00",
                 None,
                 None,
                 "2024-02-15 12:00:00",
@@ -100,3 +102,57 @@ def test_clean_fact_orders_gold_casts_timestamps_and_keeps_valid_rows(spark):
     assert str(result.first()["order_purchase_timestamp"]).endswith(
         "2024-02-10 12:00:00"
     )
+
+
+def test_build_fact_orders_gold_aggregates_and_resolves_keys(spark):
+    orders = spark.createDataFrame(
+        [
+            (
+                "o1",
+                "c1",
+                "delivered",
+                "2017-11-24 10:00:00",
+                "2017-11-24 11:00:00",
+                "2017-11-25 10:00:00",
+                "2017-11-27 10:00:00",
+                "2017-11-26 10:00:00",
+            )
+        ],
+        TEST_COLUMNS,
+    )
+    customers = spark.createDataFrame(
+        [("c1", "u1")], ["customer_id", "customer_unique_id"]
+    )
+    dim_customer = spark.createDataFrame(
+        [(7, "u1", "2017-11-24", "SP", "sao paulo")],
+        ["customer_key", "customer_unique_id", "first_order_date", "state", "city"],
+    ).withColumn("first_order_date", F.to_date("first_order_date"))
+    items = spark.createDataFrame(
+        [
+            ("o1", 1, "p1", "s1", "2017-11-24 12:00:00", 10.0, 1.0),
+            ("o1", 2, "p2", "s2", "2017-11-24 12:00:00", 20.0, 2.0),
+        ],
+        [
+            "order_id",
+            "order_item_id",
+            "product_id",
+            "seller_id",
+            "shipping_limit_date",
+            "price",
+            "freight_value",
+        ],
+    )
+    payments = spark.createDataFrame([("o1", 30.0)], ["order_id", "payment_value"])
+    dim_date = build_dim_date(orders)
+
+    result = build_fact_orders_gold(
+        orders, items, payments, customers, dim_customer, dim_date
+    ).first()
+
+    assert result["date_key"] == 20171124
+    assert result["customer_key"] == 7
+    assert result["item_count"] == 2
+    assert result["order_value"] == 30.0
+    assert result["payment_value_total"] == 30.0
+    assert result["delivery_delay_days"] == 1
+    assert result["is_new_at_order"] is True

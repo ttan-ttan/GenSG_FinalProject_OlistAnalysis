@@ -6,18 +6,21 @@ from operator import invert
 
 import pyspark.sql.functions as F
 from pyspark.sql import Column, DataFrame
+from pyspark.sql import Window
 
 EVENT_START = "2017-11-24"
 EVENT_END = "2017-11-26"
 EXCLUDED_STATUSES = ["canceled", "unavailable"]
 
 OUTPUT_COLUMNS = [
+    "product_key",
     "product_id",
-    "product_category_name_english",
-    "product_weight_g",
-    "product_length_cm",
-    "product_height_cm",
-    "product_width_cm",
+    "category_pt",
+    "category_en",
+    "weight_g",
+    "length_cm",
+    "height_cm",
+    "width_cm",
     "baseline_price_med",
 ]
 
@@ -63,6 +66,15 @@ def build_dim_product(products, translation, items, orders):
     dim = add_category_english(products, translation).join(
         baseline, "product_id", "left"
     )
+    dim = (
+        dim.withColumnRenamed("product_category_name", "category_pt")
+        .withColumnRenamed("product_category_name_english", "category_en")
+        .withColumnRenamed("product_weight_g", "weight_g")
+        .withColumnRenamed("product_length_cm", "length_cm")
+        .withColumnRenamed("product_height_cm", "height_cm")
+        .withColumnRenamed("product_width_cm", "width_cm")
+        .withColumn("product_key", F.row_number().over(Window.orderBy("product_id")))
+    )
     return dim.select(*OUTPUT_COLUMNS)
 
 
@@ -75,5 +87,5 @@ def run_clean(spark):
 
     gold_df = build_dim_product(products, translation, items, orders)
 
-    gold_df.write.format("delta").mode("overwrite").saveAsTable("gold_dim_product")
-    print("Gold dimension table 'gold_dim_product' created successfully.")
+    gold_df.write.format("delta").mode("overwrite").saveAsTable("dim_product")
+    print("Gold dimension table 'dim_product' created successfully.")

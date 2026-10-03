@@ -42,10 +42,10 @@ VALID_STATES = {
 }
 
 REQUIRED_COLUMNS = [
+    "seller_key",
     "seller_id",
-    "seller_city",
     "seller_state",
-    "seller_zip_code_prefix",
+    "seller_city",
 ]
 
 
@@ -55,24 +55,16 @@ def validate_dim_seller_gold(df: DataFrame) -> DataFrame:
     if missing:
         raise ValueError(f"Missing required columns in Gold sellers: {missing}")
 
-    # Unique seller_id
-    dup = df.groupBy("seller_id").count().filter(F.col("count") > 1)
-    if dup.count() > 0:
-        raise ValueError(f"Duplicate seller_id in Gold: {dup.first()['seller_id']}")
+    for key in ["seller_key", "seller_id"]:
+        dup = df.groupBy(key).count().filter(F.col("count") > 1)
+        if dup.count() > 0:
+            raise ValueError(f"Duplicate {key} in Gold seller dimension")
 
     # Valid state codes
     invalid = df.filter(invert(F.col("seller_state").isin(list(VALID_STATES))))
     if invalid.count() > 0:
         raise ValueError(
             f"Invalid seller_state in Gold: {invalid.first()['seller_state']}"
-        )
-
-    if (
-        df.filter(invert(F.col("seller_zip_code_prefix").between(1000, 99999))).count()
-        > 0
-    ):
-        raise ValueError(
-            "Invalid seller_zip_code_prefix in Gold: values must be between 1000 and 99999"
         )
 
     invalid_cities = df.filter(
@@ -82,7 +74,7 @@ def validate_dim_seller_gold(df: DataFrame) -> DataFrame:
         raise ValueError("seller_city is not normalized in Gold")
 
     # Null critical fields
-    critical = ["seller_id", "seller_city", "seller_state", "seller_zip_code_prefix"]
+    critical = ["seller_key", "seller_id", "seller_city", "seller_state"]
     for col in critical:
         if df.filter(F.col(col).isNull()).count() > 0:
             raise ValueError(f"Null critical field in Gold: {col}")

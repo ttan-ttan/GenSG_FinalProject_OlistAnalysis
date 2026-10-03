@@ -42,10 +42,11 @@ VALID_STATES = {
 }
 
 REQUIRED_COLUMNS = [
-    "customer_id",
-    "customer_city",
-    "customer_state",
-    "customer_first_purchase_date",
+    "customer_key",
+    "customer_unique_id",
+    "first_order_date",
+    "state",
+    "city",
 ]
 
 
@@ -60,35 +61,29 @@ def validate_dim_customer_gold(df: DataFrame) -> DataFrame:
         if df.filter(F.col(col).isNull()).count() > 0:
             raise ValueError(f"Null critical field in Gold: {col}")
 
-    # Unique customer_id
-    dup_ids = df.groupBy("customer_id").count().filter(F.col("count") > 1)
-    if dup_ids.count() > 0:
-        raise ValueError(
-            f"Duplicate customer_id in Gold: {dup_ids.first()['customer_id']}"
-        )
+    for key in ["customer_key", "customer_unique_id"]:
+        dup_ids = df.groupBy(key).count().filter(F.col("count") > 1)
+        if dup_ids.count() > 0:
+            raise ValueError(f"Duplicate {key} in Gold customer dimension")
 
     # Valid state codes
-    invalid_states = df.filter(invert(F.col("customer_state").isin(list(VALID_STATES))))
+    invalid_states = df.filter(invert(F.col("state").isin(list(VALID_STATES))))
     if invalid_states.count() > 0:
-        raise ValueError(
-            f"Invalid state in Gold: {invalid_states.first()['customer_state']}"
-        )
+        raise ValueError(f"Invalid state in Gold: {invalid_states.first()['state']}")
 
-    invalid_cities = df.filter(
-        F.col("customer_city") != F.lower(F.trim(F.col("customer_city")))
-    )
+    invalid_cities = df.filter(F.col("city") != F.lower(F.trim(F.col("city"))))
     if invalid_cities.count() > 0:
-        raise ValueError("customer_city is not normalized in Gold")
+        raise ValueError("city is not normalized in Gold")
 
-    parsed_purchase_date = F.to_timestamp(F.col("customer_first_purchase_date"))
+    parsed_purchase_date = F.try_to_timestamp(F.col("first_order_date"))
     invalid_dates = df.filter(parsed_purchase_date.isNull())
     if invalid_dates.count() > 0:
-        raise ValueError("Invalid customer_first_purchase_date in Gold")
+        raise ValueError("Invalid first_order_date in Gold")
 
     # Logical first_purchase_date
     future_dates = df.filter(parsed_purchase_date > F.current_timestamp())
     if future_dates.count() > 0:
-        raise ValueError("Gold contains future first_purchase_date")
+        raise ValueError("Gold contains future first_order_date")
 
     return df
 

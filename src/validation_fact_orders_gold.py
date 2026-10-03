@@ -7,47 +7,28 @@ and other integrity requirements prior to downstream analysis.
 
 from __future__ import annotations
 
-from operator import invert
-
 import pyspark.sql.functions as F
 from pyspark.sql import DataFrame
 
-VALID_STATUSES = {
-    "delivered",
-    "shipped",
-    "canceled",
-    "cancelled",
-    "unavailable",
-    "invoiced",
-    "processing",
-    "created",
-    "approved",
-}
-
 REQUIRED_COLUMNS = [
     "order_id",
-    "customer_id",
-    "order_status",
-    "order_purchase_timestamp",
-    "order_approved_at",
-    "order_delivered_carrier_date",
-    "order_delivered_customer_date",
-    "order_estimated_delivery_date",
+    "date_key",
+    "customer_key",
+    "order_value",
+    "item_count",
+    "delivery_delay_days",
+    "payment_value_total",
+    "is_new_at_order",
 ]
 
 
 def validate_fact_orders_gold(df: DataFrame) -> DataFrame:
-    """Return the DataFrame if it passes the gold fact-order checks."""
+    """Validate order grain, dimension keys, and order-level measures."""
     missing = [col for col in REQUIRED_COLUMNS if col not in df.columns]
     if missing:
         raise ValueError(f"Missing required columns: {missing}")
 
-    critical_cols = [
-        "order_id",
-        "customer_id",
-        "order_status",
-        "order_purchase_timestamp",
-    ]
+    critical_cols = ["order_id", "date_key", "customer_key", "is_new_at_order"]
     for col in critical_cols:
         if df.filter(F.col(col).isNull()).count() > 0:
             raise ValueError(f"Null critical field in Gold fact orders: {col}")
@@ -56,44 +37,17 @@ def validate_fact_orders_gold(df: DataFrame) -> DataFrame:
     if dup_order_ids.count() > 0:
         raise ValueError("Duplicate order_id values detected in Gold fact orders")
 
-    invalid_statuses = df.filter(
-        invert(F.col("order_status").isin(list(VALID_STATUSES)))
-    )
-    if invalid_statuses.count() > 0:
-        raise ValueError("Invalid order_status detected in Gold fact orders")
+    for col in ["order_value", "item_count", "payment_value_total"]:
+        invalid = (
+            F.col(col).isNull()
+            | F.isnan(F.col(col).cast("double"))
+            | (F.abs(F.col(col).cast("double")) == float("inf"))
+        )
+        if df.filter(invalid | (F.col(col) < 0)).count() > 0:
+            raise ValueError(f"Invalid {col} in Gold fact orders")
 
-    impossible_time_rules = [
-        (
-            "order_approved_at occurs before order_purchase_timestamp",
-            F.col("order_approved_at").isNotNull()
-            & (F.col("order_approved_at") < F.col("order_purchase_timestamp")),
-        ),
-        (
-            "order_delivered_carrier_date occurs before order_approved_at",
-            F.col("order_delivered_carrier_date").isNotNull()
-            & (F.col("order_delivered_carrier_date") < F.col("order_approved_at")),
-        ),
-        (
-            "order_delivered_customer_date occurs before order_delivered_carrier_date",
-            F.col("order_delivered_customer_date").isNotNull()
-            & (
-                F.col("order_delivered_customer_date")
-                < F.col("order_delivered_carrier_date")
-            ),
-        ),
-        (
-            "order_estimated_delivery_date occurs before order_purchase_timestamp",
-            F.col("order_estimated_delivery_date").isNotNull()
-            & (
-                F.col("order_estimated_delivery_date")
-                < F.col("order_purchase_timestamp")
-            ),
-        ),
-    ]
-
-    for message, condition in impossible_time_rules:
-        if df.filter(condition).count() > 0:
-            raise ValueError(message)
+    if dict(df.dtypes)["is_new_at_order"] != "boolean":
+        raise ValueError("is_new_at_order must be boolean in Gold fact orders")
 
     return df
 

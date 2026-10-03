@@ -201,9 +201,9 @@ def test_build_keeps_all_products_and_schema(spark, translation_data):
     assert dim.columns == OUTPUT_COLUMNS
     rows = {r["product_id"]: r for r in dim.collect()}
     assert set(rows) == {P1, P2}
-    assert rows[P1]["product_category_name_english"] == "perfumery"
+    assert rows[P1]["category_en"] == "perfumery"
     assert rows[P1]["baseline_price_med"] == 10.0
-    assert rows[P2]["product_category_name_english"] is None
+    assert rows[P2]["category_en"] is None
     assert rows[P2]["baseline_price_med"] is None  # never sold -> kept, NULL
 
 

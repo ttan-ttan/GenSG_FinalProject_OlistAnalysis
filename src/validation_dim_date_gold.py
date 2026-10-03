@@ -9,12 +9,13 @@ from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
 REQUIRED_COLUMNS = [
-    "calendar_date",
-    "year_num",
-    "month_num",
-    "month_name",
-    "day_num",
-    "day_of_week_num",
+    "date_key",
+    "date",
+    "year",
+    "month",
+    "dow",
+    "is_black_friday",
+    "event_window",
     "is_weekend",
 ]
 
@@ -29,25 +30,34 @@ def validate_dim_date_gold(df: DataFrame) -> DataFrame:
         if df.filter(F.col(col).isNull()).count() > 0:
             raise ValueError(f"{col} contains null values")
 
-    dup = df.groupBy("calendar_date").count().filter(F.col("count") > 1)
+    dup = df.groupBy("date_key").count().filter(F.col("count") > 1)
     if dup.count() > 0:
-        raise ValueError("Duplicate calendar_date values detected")
+        raise ValueError("Duplicate date_key values detected")
+    dup_dates = df.groupBy("date").count().filter(F.col("count") > 1)
+    if dup_dates.count() > 0:
+        raise ValueError("Duplicate date values detected")
 
-    date_text = F.col("calendar_date").cast("string")
+    date_text = F.col("date").cast("string")
     if df.filter(invert(date_text.rlike(r"^\d{4}-\d{2}-\d{2}$"))).count() > 0:
-        raise ValueError("Invalid calendar_date format")
+        raise ValueError("Invalid date format")
 
     parsed_timestamp = F.try_to_timestamp(date_text, F.lit("yyyy-MM-dd"))
     if df.filter(parsed_timestamp.isNull()).count() > 0:
-        raise ValueError("Invalid calendar_date value")
+        raise ValueError("Invalid date value")
     parsed_date = F.to_date(parsed_timestamp)
 
     derived_checks = [
-        ("year_num", F.year(parsed_date)),
-        ("month_num", F.month(parsed_date)),
-        ("month_name", F.date_format(parsed_date, "MMMM")),
-        ("day_num", F.dayofmonth(parsed_date)),
-        ("day_of_week_num", F.dayofweek(parsed_date)),
+        ("date_key", F.date_format(parsed_date, "yyyyMMdd").cast("int")),
+        ("year", F.year(parsed_date)),
+        ("month", F.month(parsed_date)),
+        ("dow", F.dayofweek(parsed_date)),
+        ("is_black_friday", parsed_date == F.to_date(F.lit("2017-11-24"))),
+        (
+            "event_window",
+            parsed_date.between(
+                F.to_date(F.lit("2017-11-24")), F.to_date(F.lit("2017-11-26"))
+            ),
+        ),
         ("is_weekend", F.dayofweek(parsed_date).isin(1, 7)),
     ]
     for column_name, expected in derived_checks:

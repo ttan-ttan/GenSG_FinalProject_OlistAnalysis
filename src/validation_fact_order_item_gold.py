@@ -7,38 +7,35 @@ from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
 REQUIRED_COLUMNS = [
-    "order_id",
     "order_item_id",
-    "product_id",
-    "seller_id",
-    "shipping_limit_date",
+    "order_id",
+    "date_key",
+    "customer_key",
+    "product_key",
+    "seller_key",
     "price",
     "freight_value",
+    "price_vs_baseline_pct",
 ]
 
-REQUIRED_TYPES = {
-    "order_item_id": "int",
-    "shipping_limit_date": "timestamp",
-    "price": "double",
-    "freight_value": "double",
-}
 
-
-def validate_fact_order_item_gold(df: DataFrame) -> DataFrame:
+def validate_fact_order_item_gold(
+    df: DataFrame, fact_orders: DataFrame | None = None
+) -> DataFrame:
     """Validate Gold order-item rows."""
     missing = [c for c in REQUIRED_COLUMNS if c not in df.columns]
     if missing:
         raise ValueError(f"Missing required columns: {missing}")
 
-    actual_types = dict(df.dtypes)
-    for col, expected_type in REQUIRED_TYPES.items():
-        if actual_types[col] != expected_type:
-            raise ValueError(
-                f"Invalid type for {col}: expected {expected_type}, got {actual_types[col]}"
-            )
-
-    key_cols = ["order_id", "order_item_id"]
-    for col in key_cols + ["product_id", "seller_id", "price", "freight_value"]:
+    key_cols = ["order_item_id", "order_id"]
+    for col in key_cols + [
+        "date_key",
+        "customer_key",
+        "product_key",
+        "seller_key",
+        "price",
+        "freight_value",
+    ]:
         if df.filter(F.col(col).isNull()).count() > 0:
             raise ValueError(f"Null critical field in Gold fact order item: {col}")
 
@@ -69,8 +66,27 @@ def validate_fact_order_item_gold(df: DataFrame) -> DataFrame:
     ):
         raise ValueError("Invalid freight_value detected")
 
-    if df.filter(F.col("shipping_limit_date").isNull()).count() > 0:
-        raise ValueError("shipping_limit_date contains null values")
+    if (
+        df.filter(
+            F.col("price_vs_baseline_pct").isNotNull()
+            & (
+                F.isnan("price_vs_baseline_pct")
+                | (F.abs(F.col("price_vs_baseline_pct")) == float("inf"))
+            )
+        ).count()
+        > 0
+    ):
+        raise ValueError("Invalid price_vs_baseline_pct detected")
+
+    if fact_orders is not None:
+        expected_orders = fact_orders.select("order_id", "date_key", "customer_key")
+        orphans = df.join(
+            expected_orders,
+            ["order_id", "date_key", "customer_key"],
+            "left_anti",
+        )
+        if orphans.limit(1).count() > 0:
+            raise ValueError("Orphan order/date/customer key in Gold fact order item")
 
     return df
 

@@ -8,13 +8,13 @@ from src.validation_fact_orders_gold import validate_fact_orders_gold
 
 VALID_COLUMNS = [
     "order_id",
-    "customer_id",
-    "order_status",
-    "order_purchase_timestamp",
-    "order_approved_at",
-    "order_delivered_carrier_date",
-    "order_delivered_customer_date",
-    "order_estimated_delivery_date",
+    "date_key",
+    "customer_key",
+    "order_value",
+    "item_count",
+    "delivery_delay_days",
+    "payment_value_total",
+    "is_new_at_order",
 ]
 
 
@@ -22,26 +22,8 @@ def make_valid_df(spark):
     """Create a valid DataFrame for testing validate_fact_orders_gold."""
     return spark.createDataFrame(
         [
-            (
-                "ord_001",
-                "cust_001",
-                "delivered",
-                "2024-01-01 10:00:00",
-                "2024-01-01 11:00:00",
-                "2024-01-02 10:00:00",
-                "2024-01-03 10:00:00",
-                "2024-01-05 10:00:00",
-            ),
-            (
-                "ord_002",
-                "cust_002",
-                "processing",
-                "2024-02-01 12:00:00",
-                None,
-                None,
-                None,
-                "2024-02-05 12:00:00",
-            ),
+            ("ord_001", 20240101, 1, 32.5, 2, 1, 32.5, True),
+            ("ord_002", 20240201, 2, 0.0, 0, None, 0.0, False),
         ],
         VALID_COLUMNS,
     )
@@ -62,10 +44,10 @@ def test_validate_fact_orders_gold_rejects_duplicate_order_ids(spark):
         validate_fact_orders_gold(dup)
 
 
-def test_validate_fact_orders_gold_rejects_invalid_status(spark):
-    """Test that validate_fact_orders_gold raises an error for invalid order_status values."""
+def test_validate_fact_orders_gold_rejects_negative_order_value(spark):
+    """Order-level monetary measures cannot be negative."""
     df = make_valid_df(spark)
-    bad = df.withColumn("order_status", F.lit("unknown"))
+    bad = df.withColumn("order_value", F.lit(-1.0))
     with pytest.raises(ValueError):
         validate_fact_orders_gold(bad)
 
@@ -73,21 +55,12 @@ def test_validate_fact_orders_gold_rejects_invalid_status(spark):
 def test_validate_fact_orders_gold_rejects_null_key_fields(spark):
     """Test that validate_fact_orders_gold raises an error for null values in key columns."""
     df = make_valid_df(spark)
-    bad = df.withColumn("customer_id", F.lit(None))
+    bad = df.withColumn("customer_key", F.lit(None))
     with pytest.raises(ValueError):
         validate_fact_orders_gold(bad)
 
 
-def test_validate_fact_orders_gold_rejects_impossible_date_order(spark):
-    """Test that validate_fact_orders_gold raises an error for impossible date orders."""
-    df = make_valid_df(spark)
-    bad = df.withColumn(
-        "order_approved_at",
-        df["order_purchase_timestamp"].cast("string"),
-    )
-    bad = bad.withColumn(
-        "order_approved_at",
-        bad["order_approved_at"].substr(1, 10),
-    )
+def test_validate_fact_orders_gold_rejects_null_order_grain_key(spark):
+    df = make_valid_df(spark).withColumn("order_id", F.lit(None))
     with pytest.raises(ValueError):
-        validate_fact_orders_gold(bad)
+        validate_fact_orders_gold(df)

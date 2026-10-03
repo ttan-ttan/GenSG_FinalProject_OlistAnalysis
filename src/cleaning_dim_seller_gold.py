@@ -12,6 +12,7 @@ Notes:
 
 import pyspark.sql.functions as F
 from pyspark.sql import DataFrame
+from pyspark.sql import Window
 
 
 def clean_sellers_gold(df: DataFrame) -> DataFrame:
@@ -30,14 +31,15 @@ def clean_sellers_gold(df: DataFrame) -> DataFrame:
         .withColumn("seller_city", F.lower(F.trim(F.col("seller_city"))))
         .withColumn("seller_state", F.upper(F.trim(F.col("seller_state"))))
     )
-
-    return df_clean
+    return df_clean.withColumn(
+        "seller_key", F.row_number().over(Window.orderBy("seller_id"))
+    ).select("seller_key", "seller_id", "seller_state", "seller_city")
 
 
 def run_clean(spark) -> DataFrame:
     """Build and write the Gold seller dimension from the Silver seller table."""
     sellers_df = spark.read.table("sellers_silver")
     gold_df = clean_sellers_gold(sellers_df)
-    gold_df.write.format("delta").mode("overwrite").saveAsTable("gold_dim_seller")
-    print("Gold dimension table 'gold_dim_seller' created successfully.")
+    gold_df.write.format("delta").mode("overwrite").saveAsTable("dim_seller")
+    print("Gold dimension table 'dim_seller' created successfully.")
     return gold_df

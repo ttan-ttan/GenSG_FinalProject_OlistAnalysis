@@ -21,12 +21,14 @@ P1, P2 = "p1", "p2"
 
 DIM_SCHEMA = StructType(
     [
+        StructField("product_key", IntegerType()),
         StructField("product_id", StringType()),
-        StructField("product_category_name_english", StringType()),
-        StructField("product_weight_g", IntegerType()),
-        StructField("product_length_cm", IntegerType()),
-        StructField("product_height_cm", IntegerType()),
-        StructField("product_width_cm", IntegerType()),
+        StructField("category_pt", StringType()),
+        StructField("category_en", StringType()),
+        StructField("weight_g", IntegerType()),
+        StructField("length_cm", IntegerType()),
+        StructField("height_cm", IntegerType()),
+        StructField("width_cm", IntegerType()),
         StructField("baseline_price_med", DoubleType()),
     ]
 )
@@ -36,7 +38,11 @@ SILVER_SCHEMA = "product_id string, product_category_name string"
 def _dim(spark, rows):
     """rows: (product_id, english, baseline)"""
     return spark.createDataFrame(
-        [(p, e, 225, 16, 10, 14, b) for p, e, b in rows], DIM_SCHEMA
+        [
+            (key, product_id, "perfumaria", english, 225, 16, 10, 14, baseline)
+            for key, (product_id, english, baseline) in enumerate(rows, start=1)
+        ],
+        DIM_SCHEMA,
     )
 
 
@@ -79,12 +85,12 @@ def test_known_untranslated_allows_null_english(spark, category):
         (
             [(P1, "bed_bath_table", 10.0)],
             [(P1, "cama mesa banho")],
-            "product_category_name_english not normalised",
+            "category_en not normalised",
         ),
         (
             [(P1, "Perfumery", 10.0)],
             [(P1, "perfumaria")],
-            "product_category_name_english not normalised",
+            "category_en not normalised",
         ),
         ([(P1, "perfumery", 0.0)], [(P1, "perfumaria")], "baseline_price_med"),
         ([(P1, "perfumery", -1.0)], [(P1, "perfumaria")], "baseline_price_med"),

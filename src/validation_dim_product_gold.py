@@ -50,8 +50,9 @@ def validate_dim_product_gold(dim: DataFrame, silver_products: DataFrame) -> Dat
     )
     checked = dim.join(native, "product_id", "left")
 
-    english = col("product_category_name_english")
+    english = col("category_en")
     rules = {
+        "product_key is null": col("product_key").isNull(),
         "product_id is null": col("product_id").isNull(),
         "baseline_price_med not positive and finite": col(
             "baseline_price_med"
@@ -61,8 +62,8 @@ def validate_dim_product_gold(dim: DataFrame, silver_products: DataFrame) -> Dat
             | (col("baseline_price_med") <= 0)
             | (F.abs(col("baseline_price_med")) == float("inf"))
         ),
-        "product_category_name_english not normalised": english.isNotNull()
-        & invert(english.eqNullSafe(format_english("product_category_name_english"))),
+        "category_en not normalised": english.isNotNull()
+        & invert(english.eqNullSafe(format_english("category_en"))),
         "new untranslated category": english.isNull()
         & col("_native").isNotNull()
         & invert(col("_native").isin(*KNOWN_UNTRANSLATED)),
