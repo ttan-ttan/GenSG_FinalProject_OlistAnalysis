@@ -36,10 +36,10 @@ def generate_dq_summary():
     """
     )
 
-    # 3. Invalid row logs
+    # 3. Invalid row logs (SUM instead of COUNT)
     invalid_df = spark.sql(
         """
-        SELECT dataset, COUNT(*) AS invalid_rows
+        SELECT dataset, SUM(invalid_rows) AS invalid_rows
         FROM dq_invalid_logs
         GROUP BY dataset
     """
@@ -55,6 +55,7 @@ def generate_dq_summary():
     )
 
     # 5. Append summary
-    summary_df.write.format("delta").mode("overwrite").saveAsTable("dq_summary")
+    summary_df.write.format("delta").mode(
+        "overwrite").saveAsTable("dq_summary")
 
     print("[DQ SUMMARY] Summary table updated.")
