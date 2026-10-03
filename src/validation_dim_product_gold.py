@@ -25,8 +25,7 @@ except ModuleNotFoundError:  # Fabric: Files/src on sys.path
 
 # Native categories with no row in the translation table (normalised format).
 # English NULL is expected for these; any OTHER untranslated category fails.
-KNOWN_UNTRANSLATED = {"pc gamer",
-                      "portateis cozinha e preparadores de alimentos"}
+KNOWN_UNTRANSLATED = {"pc gamer", "portateis cozinha e preparadores de alimentos"}
 
 
 def _count_where(condition: Column) -> Column:
@@ -38,15 +37,12 @@ def validate_dim_product_gold(dim: DataFrame, silver_products: DataFrame) -> Dat
     """Validate gold_dim_product against Silver products. Returns dim unchanged."""
     missing = set(OUTPUT_COLUMNS) - set(dim.columns)
     if missing:
-        raise ValueError(
-            f"gold_dim_product missing column(s): {sorted(missing)}")
+        raise ValueError(f"gold_dim_product missing column(s): {sorted(missing)}")
     missing_silver = {"product_id", "product_category_name"} - set(
         silver_products.columns
     )
     if missing_silver:
-        raise ValueError(
-            f"Silver products missing column(s): {sorted(missing_silver)}"
-        )
+        raise ValueError(f"Silver products missing column(s): {sorted(missing_silver)}")
 
     col = F.col
     native = silver_products.select(
@@ -66,9 +62,7 @@ def validate_dim_product_gold(dim: DataFrame, silver_products: DataFrame) -> Dat
             | (F.abs(col("baseline_price_med")) == float("inf"))
         ),
         "product_category_name_english not normalised": english.isNotNull()
-        & invert(
-            english.eqNullSafe(format_english("product_category_name_english"))
-        ),
+        & invert(english.eqNullSafe(format_english("product_category_name_english"))),
         "new untranslated category": english.isNull()
         & col("_native").isNotNull()
         & invert(col("_native").isin(*KNOWN_UNTRANSLATED)),

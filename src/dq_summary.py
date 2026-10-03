@@ -4,12 +4,13 @@ Creates a unified summary of DQ metrics across all datasets.
 """
 
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import current_timestamp, col
 
 
 def generate_dq_summary():
     spark = SparkSession.builder.getOrCreate()
 
-    # Ensure summary table exists
+    # 1. Ensure summary table exists
     spark.sql(
         """
         CREATE TABLE IF NOT EXISTS dq_summary (
@@ -24,7 +25,7 @@ def generate_dq_summary():
     """
     )
 
-    # Rowcount logs
+    # 2. Rowcount logs
     rowcount_df = spark.sql(
         """
         SELECT dataset,
@@ -35,7 +36,7 @@ def generate_dq_summary():
     """
     )
 
-    # Invalid row logs
+    # 3. Invalid row logs
     invalid_df = spark.sql(
         """
         SELECT dataset, COUNT(*) AS invalid_rows
@@ -44,18 +45,16 @@ def generate_dq_summary():
     """
     )
 
-    # Join both
+    # 4. Join and calculate metrics safely
     summary_df = (
         rowcount_df.alias("r")
         .join(invalid_df.alias("i"), "dataset", "left")
-        .withColumn(
-            "dropped_rows", rowcount_df.silver_before - rowcount_df.silver_after
-        )
-        .withColumn("dq_pass", (rowcount_df.silver_after > 0))
-        .withColumn("log_timestamp", spark.sql("SELECT current_timestamp()").first()[0])
+        .withColumn("dropped_rows", col("silver_before") - col("silver_after"))
+        .withColumn("dq_pass", col("silver_after") > 0)
+        .withColumn("log_timestamp", current_timestamp())
     )
 
-    # Append summary
+    # 5. Append summary
     summary_df.write.format("delta").mode("overwrite").saveAsTable("dq_summary")
 
     print("[DQ SUMMARY] Summary table updated.")

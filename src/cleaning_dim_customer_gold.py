@@ -40,7 +40,6 @@ def run_clean(spark):
     cleaned_df = clean_customers_gold(df)
 
     # 3. Write Gold table
-    cleaned_df.write.format("delta").mode(
-        "overwrite").saveAsTable("gold_dim_customers")
+    cleaned_df.write.format("delta").mode("overwrite").saveAsTable("gold_dim_customers")
 
     print("Gold dimension table 'gold_dim_customers' created successfully.")

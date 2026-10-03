@@ -19,8 +19,7 @@ REQUIRED_COLUMNS = [
 
 def clean_fact_review_gold(df: DataFrame) -> DataFrame:
     """Clean the Gold fact review table."""
-    df = df.select(
-        *[c.strip().lower() if c in df.columns else c for c in df.columns])
+    df = df.select(*[c.strip().lower() if c in df.columns else c for c in df.columns])
     missing = [c for c in REQUIRED_COLUMNS if c not in df.columns]
     if missing:
         raise ValueError(f"Missing required columns: {missing}")
@@ -42,12 +41,10 @@ def clean_fact_review_gold(df: DataFrame) -> DataFrame:
             ),
         )
         .withColumn(
-            "review_creation_date", F.to_timestamp(
-                F.col("review_creation_date"))
+            "review_creation_date", F.to_timestamp(F.col("review_creation_date"))
         )
         .withColumn(
-            "review_answer_timestamp", F.to_timestamp(
-                F.col("review_answer_timestamp"))
+            "review_answer_timestamp", F.to_timestamp(F.col("review_answer_timestamp"))
         )
     )
 
@@ -71,7 +68,6 @@ def run_clean(spark) -> DataFrame:
     """Build and write the Gold review fact from the Silver reviews table."""
     reviews_df = spark.read.table("order_reviews_silver")
     gold_df = clean_fact_review_gold(reviews_df)
-    gold_df.write.format("delta").mode(
-        "overwrite").saveAsTable("gold_fact_review")
+    gold_df.write.format("delta").mode("overwrite").saveAsTable("gold_fact_review")
     print("Gold fact table 'gold_fact_review' created successfully.")
     return gold_df

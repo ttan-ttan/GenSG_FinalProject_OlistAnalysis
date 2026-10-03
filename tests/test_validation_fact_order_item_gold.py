@@ -77,8 +77,7 @@ def test_validate_fact_order_item_gold_rejects_nonpositive_item_id(spark):
 
 def test_validate_fact_order_item_gold_rejects_wrong_gold_type(spark):
     """Gold numeric fields should have their cleaned Spark types."""
-    df = make_valid_df(spark).withColumn(
-        "price", F.col("price").cast("string"))
+    df = make_valid_df(spark).withColumn("price", F.col("price").cast("string"))
     with pytest.raises(ValueError, match="Invalid type for price"):
         validate_fact_order_item_gold(df)
 

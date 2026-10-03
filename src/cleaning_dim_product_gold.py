@@ -61,7 +61,8 @@ def build_dim_product(products, translation, items, orders):
     """Build the product dimension with category translations and baseline prices."""
     baseline = compute_baseline_price(items, orders)
     dim = add_category_english(products, translation).join(
-        baseline, "product_id", "left")
+        baseline, "product_id", "left"
+    )
     return dim.select(*OUTPUT_COLUMNS)
 
 
@@ -74,6 +75,5 @@ def run_clean(spark):
 
     gold_df = build_dim_product(products, translation, items, orders)
 
-    gold_df.write.format("delta").mode(
-        "overwrite").saveAsTable("gold_dim_product")
+    gold_df.write.format("delta").mode("overwrite").saveAsTable("gold_dim_product")
     print("Gold dimension table 'gold_dim_product' created successfully.")

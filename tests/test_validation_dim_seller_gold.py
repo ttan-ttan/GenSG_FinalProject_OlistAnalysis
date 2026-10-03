@@ -74,9 +74,9 @@ def test_gold_rejects_unnormalized_city(spark):
 
 def test_gold_missing_required_column(spark):
     """Missing columns should produce a clear validation error."""
-    df = spark.createDataFrame([("S001", "sao paulo", "SP")], [
-        "seller_id", "seller_city", "seller_state"
-    ])
+    df = spark.createDataFrame(
+        [("S001", "sao paulo", "SP")], ["seller_id", "seller_city", "seller_state"]
+    )
     with pytest.raises(ValueError, match="Missing required columns"):
         validate_dim_seller_gold(df)
 

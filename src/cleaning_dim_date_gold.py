@@ -54,8 +54,7 @@ def run_clean(spark) -> DataFrame:
     """Build and write the Gold date dimension from the Silver orders table."""
     orders_df = spark.read.table("orders_silver")
     gold_df = clean_dim_date_gold(orders_df)
-    gold_df.write.format("delta").mode(
-        "overwrite").saveAsTable("gold_dim_date")
+    gold_df.write.format("delta").mode("overwrite").saveAsTable("gold_dim_date")
     print("Gold dimension table 'gold_dim_date' created successfully.")
     return gold_df
 

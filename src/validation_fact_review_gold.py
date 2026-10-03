@@ -38,8 +38,7 @@ def validate_fact_review_gold(df: DataFrame) -> DataFrame:
     if df.filter(invert(F.col("review_score").between(1, 5))).count() > 0:
         raise ValueError("Invalid review_score detected")
 
-    dup = df.groupBy("review_id", "order_id").count().filter(
-        F.col("count") > 1)
+    dup = df.groupBy("review_id", "order_id").count().filter(F.col("count") > 1)
     if dup.count() > 0:
         raise ValueError("Duplicate review_id/order_id pair detected")
 

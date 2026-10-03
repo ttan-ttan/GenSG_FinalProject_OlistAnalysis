@@ -53,8 +53,7 @@ def validate_dim_customer_gold(df: DataFrame) -> DataFrame:
     """Validate Gold customer dimension."""
     missing = [col for col in REQUIRED_COLUMNS if col not in df.columns]
     if missing:
-        raise ValueError(
-            f"Missing required columns in Gold customers: {missing}")
+        raise ValueError(f"Missing required columns in Gold customers: {missing}")
 
     # Null critical fields
     for col in REQUIRED_COLUMNS:
@@ -69,9 +68,7 @@ def validate_dim_customer_gold(df: DataFrame) -> DataFrame:
         )
 
     # Valid state codes
-    invalid_states = df.filter(
-        invert(F.col("customer_state").isin(list(VALID_STATES)))
-    )
+    invalid_states = df.filter(invert(F.col("customer_state").isin(list(VALID_STATES))))
     if invalid_states.count() > 0:
         raise ValueError(
             f"Invalid state in Gold: {invalid_states.first()['customer_state']}"
@@ -83,8 +80,7 @@ def validate_dim_customer_gold(df: DataFrame) -> DataFrame:
     if invalid_cities.count() > 0:
         raise ValueError("customer_city is not normalized in Gold")
 
-    parsed_purchase_date = F.to_timestamp(
-        F.col("customer_first_purchase_date"))
+    parsed_purchase_date = F.to_timestamp(F.col("customer_first_purchase_date"))
     invalid_dates = df.filter(parsed_purchase_date.isNull())
     if invalid_dates.count() > 0:
         raise ValueError("Invalid customer_first_purchase_date in Gold")

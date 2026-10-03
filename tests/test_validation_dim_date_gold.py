@@ -83,9 +83,7 @@ def test_dim_date_gold_rejects_null_or_invalid_date(spark):
 
 def test_dim_date_gold_rejects_impossible_calendar_date(spark):
     """Reject strings that match the date pattern but are not real dates."""
-    df = make_valid_dim(spark).withColumn(
-        "calendar_date", F.lit("2018-02-30")
-    )
+    df = make_valid_dim(spark).withColumn("calendar_date", F.lit("2018-02-30"))
     with pytest.raises(ValueError, match="Invalid calendar_date value"):
         validate_dim_date_gold(df)
 

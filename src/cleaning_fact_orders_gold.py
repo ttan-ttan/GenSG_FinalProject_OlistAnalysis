@@ -33,8 +33,7 @@ def clean_fact_orders_gold(df: DataFrame) -> DataFrame:
             F.lower(F.trim(F.col("order_status").cast("string"))),
         )
         .withColumn(
-            "order_purchase_timestamp", F.to_timestamp(
-                "order_purchase_timestamp")
+            "order_purchase_timestamp", F.to_timestamp("order_purchase_timestamp")
         )
         .withColumn("order_approved_at", F.to_timestamp("order_approved_at"))
         .withColumn(
@@ -64,10 +63,7 @@ def clean_fact_orders_gold(df: DataFrame) -> DataFrame:
         .filter(
             F.col("order_delivered_carrier_date").isNull()
             | F.col("order_approved_at").isNull()
-            | (
-                F.col("order_delivered_carrier_date")
-                >= F.col("order_approved_at")
-            )
+            | (F.col("order_delivered_carrier_date") >= F.col("order_approved_at"))
         )
         .filter(
             F.col("order_delivered_customer_date").isNull()
@@ -93,8 +89,7 @@ def run_clean(spark) -> DataFrame:
     """Build and write the Gold order fact from the Silver orders table."""
     orders_df = spark.read.table("orders_silver")
     gold_df = clean_fact_orders_gold(orders_df)
-    gold_df.write.format("delta").mode(
-        "overwrite").saveAsTable("gold_fact_orders")
+    gold_df.write.format("delta").mode("overwrite").saveAsTable("gold_fact_orders")
     print("Gold fact table 'gold_fact_orders' created successfully.")
     return gold_df
 

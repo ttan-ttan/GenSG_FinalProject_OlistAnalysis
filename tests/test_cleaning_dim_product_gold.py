@@ -80,8 +80,7 @@ def _baseline(df):
 # 1. Translation join
 def test_translation_match_and_misses(spark, translation_data):
     """Join translated, untranslated, and uncategorized products."""
-    products = _products(
-        spark, [(P1, "cama mesa banho"), (P2, "pc gamer"), (P3, None)])
+    products = _products(spark, [(P1, "cama mesa banho"), (P2, "pc gamer"), (P3, None)])
     result = _english(add_category_english(products, translation_data))
     assert result == {P1: "bed bath table", P2: None, P3: None}
 
@@ -100,8 +99,7 @@ def test_english_formatted_lowercase_with_spaces(spark, raw, expected):
     """Normalize English category values into lowercase space-separated text."""
     products = _products(spark, [(P1, "x")])
     translation_data = spark.createDataFrame([("x", raw)], TRANSLATION_SCHEMA)
-    assert _english(add_category_english(
-        products, translation_data)) == {P1: expected}
+    assert _english(add_category_english(products, translation_data)) == {P1: expected}
 
 
 def test_translation_join_does_not_fan_out(spark):
@@ -137,8 +135,7 @@ def test_baseline_is_median(spark):
             ("o5", P2, 15.0, "delivered", "2017-10-01 11:00:00"),
         ],
     )
-    assert _baseline(compute_baseline_price(
-        items, orders)) == {P1: 20.0, P2: 12.5}
+    assert _baseline(compute_baseline_price(items, orders)) == {P1: 20.0, P2: 12.5}
 
 
 @pytest.mark.parametrize("status", ["canceled", "unavailable"])
