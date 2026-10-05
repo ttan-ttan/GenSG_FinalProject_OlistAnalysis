@@ -1,8 +1,9 @@
-""" validation_fact_order_item_gold
-This module contains functions to validate the Gold fact order-item table."""
+"""
+validation_fact_order_item_gold
+Validation for the Gold fact_order_item table.
+"""
 
 from __future__ import annotations
-
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
@@ -22,71 +23,73 @@ REQUIRED_COLUMNS = [
 def validate_fact_order_item_gold(
     df: DataFrame, fact_orders: DataFrame | None = None
 ) -> DataFrame:
-    """Validate Gold order-item rows."""
+    """Validate Gold order-item fact rows."""
+    # Schema check
     missing = [c for c in REQUIRED_COLUMNS if c not in df.columns]
     if missing:
-        raise ValueError(f"Missing required columns: {missing}")
+        raise ValueError(
+            f"Missing required columns in gold_fact_order_item: {missing}")
 
-    key_cols = ["order_item_id", "order_id"]
-    for col in key_cols + [
-        "date_key",
-        "customer_key",
-        "product_key",
-        "seller_key",
-        "price",
-        "freight_value",
-    ]:
+    # Null checks
+    critical_cols = [
+        "order_item_id", "order_id", "date_key", "customer_key",
+        "product_key", "seller_key", "price", "freight_value"
+    ]
+    for col in critical_cols:
         if df.filter(F.col(col).isNull()).count() > 0:
-            raise ValueError(f"Null critical field in Gold fact order item: {col}")
+            raise ValueError(
+                f"Null critical field in gold_fact_order_item: {col}")
 
-    dup = df.groupBy("order_id", "order_item_id").count().filter(F.col("count") > 1)
+    # Duplicate order-item pairs
+    dup = df.groupBy("order_id", "order_item_id").count().filter(
+        F.col("count") > 1)
     if dup.count() > 0:
-        raise ValueError("Duplicate order_id/order_item_id pair detected")
+        raise ValueError("Duplicate (order_id, order_item_id) pair detected")
 
+    # order_item_id must be positive
     if df.filter(F.col("order_item_id") <= 0).count() > 0:
-        raise ValueError("Invalid order_item_id: values must be positive")
+        raise ValueError("order_item_id must be positive")
 
-    if (
-        df.filter(
-            F.isnan("price")
-            | (F.abs(F.col("price")) == float("inf"))
-            | (F.col("price") <= 0)
-        ).count()
-        > 0
-    ):
-        raise ValueError("Invalid price detected")
+    # Price validation
+    invalid_price = (
+        F.isnan("price")
+        | (F.abs(F.col("price")) == float("inf"))
+        | (F.col("price") <= 0)
+    )
+    if df.filter(invalid_price).count() > 0:
+        raise ValueError("Invalid price detected in gold_fact_order_item")
 
-    if (
-        df.filter(
-            F.isnan("freight_value")
-            | (F.abs(F.col("freight_value")) == float("inf"))
-            | (F.col("freight_value") < 0)
-        ).count()
-        > 0
-    ):
-        raise ValueError("Invalid freight_value detected")
+    # Freight validation
+    invalid_freight = (
+        F.isnan("freight_value")
+        | (F.abs(F.col("freight_value")) == float("inf"))
+        | (F.col("freight_value") < 0)
+    )
+    if df.filter(invalid_freight).count() > 0:
+        raise ValueError(
+            "Invalid freight_value detected in gold_fact_order_item")
 
-    if (
-        df.filter(
-            F.col("price_vs_baseline_pct").isNotNull()
-            & (
-                F.isnan("price_vs_baseline_pct")
-                | (F.abs(F.col("price_vs_baseline_pct")) == float("inf"))
-            )
-        ).count()
-        > 0
-    ):
+    # Baseline % validation
+    invalid_pct = (
+        F.col("price_vs_baseline_pct").isNotNull()
+        & (
+            F.isnan("price_vs_baseline_pct")
+            | (F.abs(F.col("price_vs_baseline_pct")) == float("inf"))
+        )
+    )
+    if df.filter(invalid_pct).count() > 0:
         raise ValueError("Invalid price_vs_baseline_pct detected")
 
+    # Orphan FK check
     if fact_orders is not None:
-        expected_orders = fact_orders.select("order_id", "date_key", "customer_key")
+        expected = fact_orders.select("order_id", "date_key", "customer_key")
         orphans = df.join(
-            expected_orders,
+            expected,
             ["order_id", "date_key", "customer_key"],
             "left_anti",
         )
         if orphans.limit(1).count() > 0:
-            raise ValueError("Orphan order/date/customer key in Gold fact order item")
+            raise ValueError("Orphan FK detected in gold_fact_order_item")
 
     return df
 

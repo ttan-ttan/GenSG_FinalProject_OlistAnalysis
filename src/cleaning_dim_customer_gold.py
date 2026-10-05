@@ -35,12 +35,14 @@ def build_dim_customer(customers: DataFrame, orders: DataFrame) -> DataFrame:
     ).dropDuplicates(["customer_id"])
     first_orders = (
         orders.join(
-            customer_map.select("customer_id", "customer_unique_id"), "customer_id"
+            customer_map.select(
+                "customer_id", "customer_unique_id"), "customer_id"
         )
         .groupBy("customer_unique_id")
         .agg(F.min(F.to_date("order_purchase_timestamp")).alias("first_order_date"))
     )
-    customer_window = Window.partitionBy("customer_unique_id").orderBy("customer_id")
+    customer_window = Window.partitionBy(
+        "customer_unique_id").orderBy("customer_id")
     customers = (
         customer_map.withColumn("_row", F.row_number().over(customer_window))
         .filter(F.col("_row") == 1)
@@ -75,12 +77,13 @@ def run_clean(spark):
     """
 
     # 1. Read Silver table
-    df = spark.read.table("customers_silver")
+    df = spark.read.table("silver_customers")
 
-    orders_df = spark.read.table("orders_silver")
+    orders_df = spark.read.table("silver_orders")
     cleaned_df = build_dim_customer(df, orders_df)
 
     # 3. Write Gold table
-    cleaned_df.write.format("delta").mode("overwrite").saveAsTable("dim_customer")
+    cleaned_df.write.format("delta").mode(
+        "overwrite").saveAsTable("dim_customer")
 
     print("Gold dimension table 'dim_customer' created successfully.")

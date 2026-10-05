@@ -6,7 +6,27 @@
             "cell_type": "markdown",
             "metadata": {},
             "source": [
-                "# Auto-generated notebook\n"
+                "# Gold Fact Order Item\n",
+                "\n",
+                "Reads `order_items_silver`, `fact_order`, `dim_product`, and `dim_seller`, builds and validates the item-grain fact, and overwrites `fact_order_item`.\n"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": null,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "import sys\n",
+                "\n",
+                "files_root = \"/lakehouse/default/Files\"\n",
+                "if files_root not in sys.path:\n",
+                "    sys.path.insert(0, files_root)\n",
+                "\n",
+                "from src.cleaning_fact_order_item_gold import run_clean\n",
+                "\n",
+                "gold_fact_order_items = run_clean(spark)\n",
+                "print(f\"Wrote {gold_fact_order_items.count()} rows to fact_order_item\")"
             ]
         }
     ],

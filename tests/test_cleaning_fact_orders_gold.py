@@ -116,15 +116,28 @@ def test_build_fact_orders_gold_aggregates_and_resolves_keys(spark):
                 "2017-11-25 10:00:00",
                 "2017-11-27 10:00:00",
                 "2017-11-26 10:00:00",
-            )
+            ),
+            (
+                "o2",
+                "c2",
+                "delivered",
+                "2017-11-24 09:00:00",
+                "2017-11-24 09:30:00",
+                "2017-11-24 10:00:00",
+                "2017-11-25 10:00:00",
+                "2017-11-26 10:00:00",
+            ),
         ],
         TEST_COLUMNS,
     )
     customers = spark.createDataFrame(
-        [("c1", "u1")], ["customer_id", "customer_unique_id"]
+        [("c1", "u1"), ("c2", "u2")], ["customer_id", "customer_unique_id"]
     )
     dim_customer = spark.createDataFrame(
-        [(7, "u1", "2017-11-24", "SP", "sao paulo")],
+        [
+            (7, "u1", "2017-11-24", "SP", "sao paulo"),
+            (8, "u2", "2017-11-24", "RJ", "rio de janeiro"),
+        ],
         ["customer_key", "customer_unique_id", "first_order_date", "state", "city"],
     ).withColumn("first_order_date", F.to_date("first_order_date"))
     items = spark.createDataFrame(
@@ -145,9 +158,11 @@ def test_build_fact_orders_gold_aggregates_and_resolves_keys(spark):
     payments = spark.createDataFrame([("o1", 30.0)], ["order_id", "payment_value"])
     dim_date = build_dim_date(orders)
 
-    result = build_fact_orders_gold(
+    results = build_fact_orders_gold(
         orders, items, payments, customers, dim_customer, dim_date
-    ).first()
+    ).collect()
+    rows = {row["order_id"]: row for row in results}
+    result = rows["o1"]
 
     assert result["date_key"] == 20171124
     assert result["customer_key"] == 7
@@ -156,3 +171,4 @@ def test_build_fact_orders_gold_aggregates_and_resolves_keys(spark):
     assert result["payment_value_total"] == 30.0
     assert result["delivery_delay_days"] == 1
     assert result["is_new_at_order"] is True
+    assert rows["o2"]["delivery_delay_days"] == 0
