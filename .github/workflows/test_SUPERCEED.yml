@@ -1,0 +1,12 @@
+name: Superseded PySpark Tests
+
+# Kept for history. CI.yml is the active workflow.
+on:
+  workflow_dispatch:
+
+jobs:
+  notice:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain superseded workflow
+        run: echo "Use CI.yml for PySpark tests."

@@ -1,67 +1,60 @@
-"""Quality checks for the Gold order-grain fact table."""
+"""
+validation_fact_orders_gold
+Gold-layer validation for the Olist orders fact table.
+"""
 
+from __future__ import annotations
+import pyspark.sql.functions as F
 from pyspark.sql import DataFrame
-from pyspark.sql import functions as F
+
+REQUIRED_COLUMNS = [
+    "order_id",
+    "date_key",
+    "customer_key",
+    "order_value",
+    "item_count",
+    "delivery_delay_days",
+    "payment_value_total",
+    "is_new_at_order",
+]
 
 
 def validate_fact_orders_gold(df: DataFrame) -> DataFrame:
-	"""Reject a Gold fact that violates key, grain, or order business rules."""
-	required_columns = [
-		"order_id",
-		"customer_key",
-		"purchase_date_key",
-		"order_purchase_timestamp",
-		"order_approved_at",
-		"order_delivered_carrier_date",
-		"order_delivered_customer_date",
-		"item_count",
-		"order_value",
-		"delivery_delay_days",
-	]
-	missing = [column for column in required_columns if column not in df.columns]
-	if missing:
-		raise ValueError(f"Missing required Gold fact columns: {missing}")
+    """Validate order grain, dimension keys, and order-level measures."""
+    # Schema check
+    missing = [col for col in REQUIRED_COLUMNS if col not in df.columns]
+    if missing:
+        raise ValueError(
+            f"Missing required columns in gold_fact_orders: {missing}")
 
-	for column in ("order_id", "customer_key", "purchase_date_key"):
-		if df.filter(F.col(column).isNull()).limit(1).count():
-			raise ValueError(f"{column} contains null values")
+    # Null checks
+    critical_cols = ["order_id", "date_key", "customer_key", "is_new_at_order"]
+    for col in critical_cols:
+        if df.filter(F.col(col).isNull()).count() > 0:
+            raise ValueError(f"Null critical field in gold_fact_orders: {col}")
 
-	if (
-		df.groupBy("order_id")
-		.count()
-		.filter(F.col("count") > 1)
-		.limit(1)
-		.count()
-	):
-		raise ValueError("Duplicate order_id values detected")
+    # Duplicate order_id
+    dup_order_ids = df.groupBy("order_id").count().filter(F.col("count") > 1)
+    if dup_order_ids.count() > 0:
+        raise ValueError("Duplicate order_id detected in gold_fact_orders")
 
-	if df.filter(F.col("item_count").isNull() | (F.col("item_count") < 0)).limit(1).count():
-		raise ValueError("Invalid item_count detected")
-	if df.filter(F.col("order_value").isNull() | (F.col("order_value") < 0)).limit(1).count():
-		raise ValueError("Invalid order_value detected")
+    # Numeric validations
+    numeric_cols = ["order_value", "item_count", "payment_value_total"]
+    for col in numeric_cols:
+        invalid = (
+            F.col(col).isNull()
+            | F.isnan(F.col(col).cast("double"))
+            | (F.abs(F.col(col).cast("double")) == float("inf"))
+            | (F.col(col) < 0)
+        )
+        if df.filter(invalid).count() > 0:
+            raise ValueError(f"Invalid {col} detected in gold_fact_orders")
 
-	timestamp_rules = [
-		(
-			"order_approved_at",
-			F.col("order_approved_at") < F.col("order_purchase_timestamp"),
-		),
-		(
-			"order_delivered_carrier_date",
-			F.col("order_delivered_carrier_date") < F.col("order_purchase_timestamp"),
-		),
-		(
-			"order_delivered_customer_date",
-			F.col("order_delivered_customer_date") < F.col("order_purchase_timestamp"),
-		),
-	]
-	for column, invalid_sequence in timestamp_rules:
-		if df.filter(F.col(column).isNotNull() & invalid_sequence).limit(1).count():
-			raise ValueError(f"{column} occurs before order_purchase_timestamp")
+    # Boolean validation
+    if dict(df.dtypes)["is_new_at_order"] != "boolean":
+        raise ValueError("is_new_at_order must be boolean in gold_fact_orders")
 
-	if df.filter(
-		F.col("delivery_delay_days").isNotNull()
-		& (F.col("delivery_delay_days") < 0)
-	).limit(1).count():
-		raise ValueError("delivery_delay_days must be greater than or equal to zero")
+    return df
 
-	return df
+
+validate_orders_gold = validate_fact_orders_gold

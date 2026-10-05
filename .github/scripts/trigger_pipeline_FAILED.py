@@ -3,6 +3,7 @@ Trigger a Fabric pipeline using REST API.
 """
 
 import os
+
 import msal
 import requests
 
@@ -34,7 +35,7 @@ url = (
 
 headers = {
     "Authorization": f"Bearer {access_token}",
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
 }
 
 resp = requests.post(url, headers=headers, timeout=30)

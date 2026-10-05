@@ -10,8 +10,33 @@ import pyspark.sql.functions as F
 from pyspark.sql import DataFrame
 
 VALID_STATES = {
-    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
-    "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+    "AC",
+    "AL",
+    "AP",
+    "AM",
+    "BA",
+    "CE",
+    "DF",
+    "ES",
+    "GO",
+    "MA",
+    "MT",
+    "MS",
+    "MG",
+    "PA",
+    "PB",
+    "PR",
+    "PE",
+    "PI",
+    "RJ",
+    "RN",
+    "RS",
+    "RO",
+    "RR",
+    "SC",
+    "SP",
+    "SE",
+    "TO",
 }
 
 
@@ -28,25 +53,22 @@ def validate_sellers(df: DataFrame) -> DataFrame:
     invalid_states = df.filter(~F.col("seller_state").isin(list(VALID_STATES)))
     if invalid_states.count() > 0:
         raise ValueError(
-            f"Invalid seller_state: {invalid_states.first()['seller_state']}")
+            f"Invalid seller_state: {invalid_states.first()['seller_state']}"
+        )
 
     # Duplicate seller_id
-    dup_ids = (
-        df.groupBy("seller_id")
-          .count()
-          .filter(F.col("count") > 1)
-    )
+    dup_ids = df.groupBy("seller_id").count().filter(F.col("count") > 1)
     if dup_ids.count() > 0:
-        raise ValueError(
-            f"Duplicate seller_id: {dup_ids.first()['seller_id']}")
+        raise ValueError(f"Duplicate seller_id: {dup_ids.first()['seller_id']}")
 
     # ZIP code range
     invalid_zip = df.filter(
-        (F.col("seller_zip_code_prefix") < 1000) |
-        (F.col("seller_zip_code_prefix") > 99999)
+        (F.col("seller_zip_code_prefix") < 1000)
+        | (F.col("seller_zip_code_prefix") > 99999)
     )
     if invalid_zip.count() > 0:
         raise ValueError(
-            f"Invalid ZIP code prefix: {invalid_zip.first()['seller_zip_code_prefix']}")
+            f"Invalid ZIP code prefix: {invalid_zip.first()['seller_zip_code_prefix']}"
+        )
 
     return df

@@ -10,7 +10,16 @@ data/processed/*.csv
 .DS_Store   # prevent macOS hidden system file to upload 
 Thumbs.db   # prevent hidden image cache file by window 
 
+# Exclude executables and build folders
+*.exe
+dist/
+build/
+*.spec
 
+# Exclude extracted ZIP files and Parquet temporary files
+export_all/
+export_all*.zip
+*.parquet
 
 
 

@@ -11,11 +11,21 @@ Notes for team:
     - Pytest discovers it automatically.
 """
 
+import os
+import sys
+
 import pytest
 from pyspark.sql import SparkSession
+
+# Use the same interpreter for the Spark driver and worker processes.
+# This prevents PYTHON_VERSION_MISMATCH when pytest is launched from a
+# Python environment different from the one Spark tries to use by default.
+os.environ.setdefault("PYSPARK_PYTHON", sys.executable)
+os.environ.setdefault("PYSPARK_DRIVER_PYTHON", sys.executable)
 
 
 @pytest.fixture(scope="session")
 def spark():
-    """Create a SparkSession for all tests."""
-    return SparkSession.builder.getOrCreate()
+    session = SparkSession.builder.master("local[*]").getOrCreate()
+    yield session
+    session.stop()

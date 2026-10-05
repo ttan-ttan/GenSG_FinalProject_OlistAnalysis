@@ -1,45 +1,30 @@
-"""Gold date dimension construction for Orders date roles."""
+"""
+cleaning_dim_date_gold
+Gold-layer build for the date dimension.
+"""
 
-from pyspark.sql import DataFrame, Window
-from pyspark.sql import functions as F
-
-
-ORDER_DATE_COLUMNS = [
-	"order_purchase_timestamp",
-	"order_approved_at",
-	"order_delivered_carrier_date",
-	"order_delivered_customer_date",
-	"order_estimated_delivery_date",
-]
+import pyspark.sql.functions as F
+from pyspark.sql import DataFrame
 
 
-def clean_dim_date_gold(orders: DataFrame) -> DataFrame:
-	"""Build a conformed date dimension from available Orders timestamps."""
-	missing = [column for column in ORDER_DATE_COLUMNS if column not in orders.columns]
-	if missing:
-		raise ValueError(f"Missing required order date columns: {missing}")
+def build_dim_date_gold(orders: DataFrame) -> DataFrame:
+    df = (
+        orders.select(F.to_date("order_purchase_timestamp").alias("date"))
+              .dropDuplicates()
+              .withColumn("date_key", F.date_format("date", "yyyyMMdd"))
+              .withColumn("year", F.year("date"))
+              .withColumn("month", F.month("date"))
+              .withColumn("day", F.dayofmonth("date"))
+              .withColumn("weekday", F.date_format("date", "EEEE"))
+    )
+    return df.select("date_key", "date", "year", "month", "day", "weekday")
 
-	date_frames = [
-		orders.select(F.to_date(F.col(column)).alias("date_value"))
-		for column in ORDER_DATE_COLUMNS
-	]
-	dates = date_frames[0]
-	for frame in date_frames[1:]:
-		dates = dates.unionByName(frame)
 
-	dates = dates.filter(F.col("date_value").isNotNull()).distinct()
-	window = Window.orderBy("date_value")
+def run_clean(spark):
+    orders = spark.read.table("silver_orders")
+    gold_df = build_dim_date_gold(orders)
 
-	return (
-		dates.withColumn("date_key", F.row_number().over(window))
-		.withColumn("calendar_year", F.year("date_value"))
-		.withColumn("quarter", F.quarter("date_value"))
-		.withColumn("month", F.month("date_value"))
-		.withColumn("month_name", F.date_format("date_value", "MMMM"))
-		.withColumn("day_of_month", F.dayofmonth("date_value"))
-		.withColumn("day_of_week", F.dayofweek("date_value"))
-		.withColumn("day_name", F.date_format("date_value", "EEEE"))
-		.withColumn(
-			"is_weekend", F.dayofweek("date_value").isin([1, 7])
-		)
-	)
+    gold_df.write.format("delta").mode(
+        "overwrite").saveAsTable("gold_dim_date")
+    print("Gold dimension table 'gold_dim_date' created successfully.")
+    return gold_df

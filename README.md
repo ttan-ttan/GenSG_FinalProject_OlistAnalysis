@@ -8,7 +8,7 @@ An end-to-end data engineering and analytics solution built by a team of 4 learn
 
 1. **Tan Yj**
 2. **Ana**
-3. **Jie Shong**
+3. **Jie Song**
 4. **Jun Jie**
 
 ---

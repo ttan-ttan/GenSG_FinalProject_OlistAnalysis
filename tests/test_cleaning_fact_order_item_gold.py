@@ -1,136 +1,93 @@
-import pytest
+""" test_cleaning_fact_order_item_gold  """
 
 from src.cleaning_fact_order_item_gold import (
-	build_fact_order_items_gold,
-	clean_fact_order_item_gold,
+    build_fact_order_items_gold,
+    clean_fact_order_item_gold,
 )
 
 
-def test_clean_fact_order_item_gold_adds_line_value(spark):
-	df = spark.createDataFrame(
-		[
-			(
-				" order-1 ",
-				"1",
-				" product-1 ",
-				" seller-1 ",
-				"2018-01-10 10:00:00",
-				"99.90",
-				"12.50",
-			)
-		],
-		[
-			"order_id",
-			"order_item_id",
-			"product_id",
-			"seller_id",
-			"shipping_limit_date",
-			"price",
-			"freight_value",
-		],
-	)
-
-	fact = clean_fact_order_item_gold(df)
-	row = fact.first()
-
-	assert fact.count() == 1
-	assert row["order_id"] == "order-1"
-	assert row["product_id"] == "product-1"
-	assert row["seller_id"] == "seller-1"
-	assert row["order_item_id"] == 1
-	assert row["item_total_value"] == 112.4
+def test_clean_fact_order_item_gold_filters_and_casts(spark):
+    """Test that clean_fact_order_item_gold filters out invalid rows
+    and casts columns to the correct types."""
+    df = spark.createDataFrame(
+        [
+            ("o1", 1, "p1", "s1", "2018-01-01 00:00:00", 10.5, 2.0),
+            ("o1", 1, "p1", "s1", "2018-01-01 00:00:00", 10.5, 2.0),
+            ("o2", 1, "p2", None, "2018-01-02 00:00:00", 12.0, -1.0),
+            ("o3", 2, "p3", "s3", "2018-01-03 00:00:00", None, 0.5),
+        ],
+        [
+            "order_id",
+            "order_item_id",
+            "product_id",
+            "seller_id",
+            "shipping_limit_date",
+            "price",
+            "freight_value",
+        ],
+    )
+    out = clean_fact_order_item_gold(df)
+    assert out.count() == 1
+    assert out.first()["order_id"] == "o1"
+    assert out.first()["price"] == 10.5
+    assert dict(out.dtypes)["order_item_id"] == "int"
+    assert dict(out.dtypes)["shipping_limit_date"] == "timestamp"
+    assert dict(out.dtypes)["price"] == "double"
+    assert dict(out.dtypes)["freight_value"] == "double"
 
 
-def test_build_fact_order_items_gold_links_to_orders(spark):
-	items = spark.createDataFrame(
-		[("order-1", 1, "product-1", "seller-1", "2018-01-10 12:00:00", 99.9, 12.5)],
-		[
-			"order_id",
-			"order_item_id",
-			"product_id",
-			"seller_id",
-			"shipping_limit_date",
-			"price",
-			"freight_value",
-		],
-	)
-	orders = spark.createDataFrame(
-		[("order-1", 8, 42)],
-		["order_id", "customer_key", "purchase_date_key"],
-	)
+def test_clean_fact_order_item_gold_drops_invalid_item_ids_dates_and_amounts(spark):
+    """Drop rows with invalid item IDs, shipping dates, or amount values."""
+    df = spark.createDataFrame(
+        [
+            ("o1", 0, "p1", "s1", "2018-01-01 00:00:00", 10.0, 1.0),
+            ("o2", None, "p2", "s2", "2018-01-01 00:00:00", 10.0, 1.0),
+            ("o3", 1, "p3", "s3", "not-a-date", 10.0, 1.0),
+            ("o4", 1, "p4", "s4", "2018-01-01 00:00:00", float("inf"), 1.0),
+            ("o5", 1, "p5", "s5", "2018-01-01 00:00:00", 10.0, float("nan")),
+        ],
+        [
+            "order_id",
+            "order_item_id",
+            "product_id",
+            "seller_id",
+            "shipping_limit_date",
+            "price",
+            "freight_value",
+        ],
+    )
 
-	fact = build_fact_order_items_gold(items, orders)
-	row = fact.first()
-
-	assert fact.count() == 1
-	assert row["customer_key"] == 8
-	assert row["purchase_date_key"] == 42
-	assert row["item_total_value"] == 112.4
+    assert clean_fact_order_item_gold(df).count() == 0
 
 
-def test_build_fact_order_items_gold_rejects_unknown_order(spark):
-	items = spark.createDataFrame(
-		[("missing-order", 1, "product-1", "seller-1", "2018-01-10 12:00:00", 99.9, 12.5)],
-		[
-			"order_id",
-			"order_item_id",
-			"product_id",
-			"seller_id",
-			"shipping_limit_date",
-			"price",
-			"freight_value",
-		],
-	)
-	orders = spark.createDataFrame(
-		[("order-1", 8, 42)],
-		["order_id", "customer_key", "purchase_date_key"],
-	)
+def test_build_fact_order_items_gold_joins_keys_and_calculates_discount(spark):
+    items = spark.createDataFrame(
+        [("o1", 1, "p1", "s1", "2018-01-01 00:00:00", 15.0, 2.0)],
+        [
+            "order_id",
+            "order_item_id",
+            "product_id",
+            "seller_id",
+            "shipping_limit_date",
+            "price",
+            "freight_value",
+        ],
+    )
+    fact_orders = spark.createDataFrame(
+        [("o1", 20180101, 11)], ["order_id", "date_key", "customer_key"]
+    )
+    dim_product = spark.createDataFrame(
+        [(21, "p1", 20.0)], ["product_key", "product_id", "baseline_price_med"]
+    )
+    dim_seller = spark.createDataFrame([(31, "s1")], ["seller_key", "seller_id"])
 
-	with pytest.raises(ValueError, match="missing from fact_orders"):
-		build_fact_order_items_gold(items, orders)
+    result = build_fact_order_items_gold(
+        items, fact_orders, dim_product, dim_seller
+    ).first()
 
-
-def test_build_fact_order_items_gold_matches_trimmed_order_ids(spark):
-	items = spark.createDataFrame(
-		[(" order-1 ", 1, "product-1", "seller-1", "2018-01-10 12:00:00", 99.9, 12.5)],
-		[
-			"order_id",
-			"order_item_id",
-			"product_id",
-			"seller_id",
-			"shipping_limit_date",
-			"price",
-			"freight_value",
-		],
-	)
-	orders = spark.createDataFrame(
-		[("order-1", 8, 42)],
-		["order_id", "customer_key", "purchase_date_key"],
-	)
-
-	result = build_fact_order_items_gold(items, orders)
-
-	assert result.count() == 1
-	assert result.first()["order_id"] == "order-1"
-
-
-def test_build_fact_order_items_gold_rejects_duplicate_parent_orders(spark):
-	items = spark.createDataFrame(
-		[("order-1", 1, "product-1", "seller-1", "2018-01-10 12:00:00", 99.9, 12.5)],
-		[
-			"order_id",
-			"order_item_id",
-			"product_id",
-			"seller_id",
-			"shipping_limit_date",
-			"price",
-			"freight_value",
-		],
-	)
-	orders = spark.createDataFrame(
-		[("order-1", 8, 42), ("order-1", 9, 42)],
-		["order_id", "customer_key", "purchase_date_key"],
-	)
-
-	with pytest.raises(ValueError, match="unique, non-null order_id"):
-		build_fact_order_items_gold(items, orders)
+    assert result["order_item_id"] == 1
+    assert result["date_key"] == 20180101
+    assert result["customer_key"] == 11
+    assert result["product_key"] == 21
+    assert result["seller_key"] == 31
+    assert result["price_vs_baseline_pct"] == 25.0

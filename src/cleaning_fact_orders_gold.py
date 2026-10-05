@@ -1,164 +1,101 @@
-"""Gold-layer transformations for the order-grain fact table."""
+"""
+cleaning_fact_review_gold
+This module contains functions to clean the Gold fact review table.
+"""
 
+from __future__ import annotations
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
-from src.cleaning_dim_date_gold import ORDER_DATE_COLUMNS
+REQUIRED_COLUMNS = [
+    "review_id",
+    "order_id",
+    "review_score",
+    "review_comment_title",
+    "review_comment_message",
+    "review_creation_date",
+    "review_answer_timestamp",
+]
+
+FACT_COLUMNS = ["review_id", "order_id", "order_date_key", "review_score"]
 
 
-def clean_fact_orders_gold(df: DataFrame) -> DataFrame:
-	"""Add order lifecycle measures without changing the source row grain."""
-	return (
-		df.withColumn(
-			"approval_delay_hours",
-			(
-				F.unix_timestamp("order_approved_at")
-				- F.unix_timestamp("order_purchase_timestamp")
-			)
-			/ F.lit(3600.0),
-		)
-		.withColumn(
-			"carrier_dispatch_days",
-			F.datediff(
-				F.col("order_delivered_carrier_date"),
-				F.col("order_purchase_timestamp"),
-			),
-		)
-		.withColumn(
-			"delivery_days",
-			F.datediff(
-				F.col("order_delivered_customer_date"),
-				F.col("order_purchase_timestamp"),
-			),
-		)
-		.withColumn(
-			"delivery_delay_days",
-			F.when(
-				F.col("order_delivered_customer_date").isNotNull()
-				& F.col("order_estimated_delivery_date").isNotNull(),
-				F.greatest(
-					F.datediff(
-						F.col("order_delivered_customer_date"),
-						F.col("order_estimated_delivery_date"),
-					),
-					F.lit(0),
-				),
-			),
-		)
-	)
+def clean_fact_review_gold(df: DataFrame) -> DataFrame:
+    df = df.toDF(*[c.strip().lower() for c in df.columns])
+
+    missing = [c for c in REQUIRED_COLUMNS if c not in df.columns]
+    if missing:
+        raise ValueError(f"Missing required columns: {missing}")
+
+    df = (
+        df.withColumn("review_id", F.trim(F.col("review_id").cast("string")))
+          .withColumn("order_id", F.trim(F.col("order_id").cast("string")))
+          .withColumn("review_score", F.col("review_score").cast("int"))
+          .withColumn("review_comment_title",
+                      F.when(F.col("review_comment_title") == "", None)
+                       .otherwise(F.trim(F.col("review_comment_title"))))
+          .withColumn("review_comment_message",
+                      F.when(F.col("review_comment_message") == "", None)
+                       .otherwise(F.trim(F.col("review_comment_message"))))
+          .withColumn("review_creation_date",
+                      F.to_timestamp(F.col("review_creation_date")))
+          .withColumn("review_answer_timestamp",
+                      F.to_timestamp(F.col("review_answer_timestamp")))
+    )
+
+    df = (
+        df.filter(F.col("review_id").isNotNull())
+          .filter(F.col("order_id").isNotNull())
+          .filter(F.col("review_score").between(1, 5))
+          .filter(F.col("review_creation_date").isNotNull())
+          .filter(F.col("review_answer_timestamp").isNotNull())
+          .filter(F.col("review_answer_timestamp") >= F.col("review_creation_date"))
+          .dropDuplicates()
+    )
+
+    return df.select(*REQUIRED_COLUMNS)
 
 
-def build_fact_orders_gold(
-	orders: DataFrame,
-	order_items: DataFrame,
-	dim_customer: DataFrame,
-	dim_date: DataFrame,
-) -> DataFrame:
-	"""Join Silver-approved inputs into a validated order-grain fact."""
-	required_orders = [
-		"order_id",
-		"customer_id",
-		"order_status",
-		*ORDER_DATE_COLUMNS,
-	]
-	missing = [column for column in required_orders if column not in orders.columns]
-	if missing:
-		raise ValueError(f"Missing required Orders columns: {missing}")
-	for column in ("order_id", "order_item_id", "price"):
-		if column not in order_items.columns:
-			raise ValueError(f"Missing required Order Items column: {column}")
-	if "customer_id" not in dim_customer.columns or "customer_key" not in dim_customer.columns:
-		raise ValueError("dim_customer must contain customer_id and customer_key")
-	if "date_value" not in dim_date.columns or "date_key" not in dim_date.columns:
-		raise ValueError("dim_date must contain date_value and date_key")
+def build_fact_review_gold(reviews: DataFrame, fact_orders: DataFrame) -> DataFrame:
+    missing = [c for c in ["review_id", "order_id",
+                           "review_score"] if c not in reviews.columns]
+    if missing:
+        raise ValueError(f"Missing required review columns: {missing}")
 
-	if orders.filter(F.col("order_id").isNull()).limit(1).count():
-		raise ValueError("order_id contains null values")
-	if (
-		orders.groupBy("order_id")
-		.count()
-		.filter(F.col("count") > 1)
-		.limit(1)
-		.count()
-	):
-		raise ValueError("Duplicate order_id values detected")
+    reviews = (
+        reviews.select(
+            F.trim(F.col("review_id").cast("string")).alias("review_id"),
+            F.trim(F.col("order_id").cast("string")).alias("order_id"),
+            F.col("review_score").cast("int").alias("review_score"),
+        )
+        .filter(F.col("review_id") != "")
+        .filter(F.col("order_id") != "")
+        .filter(F.col("review_score").between(1, 5))
+        .dropDuplicates()
+    )
 
-	orphan_items = order_items.join(
-		orders.select("order_id").distinct(), on="order_id", how="left_anti"
-	)
-	if orphan_items.limit(1).count():
-		raise ValueError("Order Items contains order_id values missing from Orders")
+    duplicates = reviews.groupBy(
+        "review_id").count().filter(F.col("count") > 1)
+    if duplicates.limit(1).count() > 0:
+        raise ValueError("review_id must uniquely identify a review")
 
-	unmatched_customers = orders.select("customer_id").distinct().join(
-		dim_customer.select("customer_id").distinct(),
-		on="customer_id",
-		how="left_anti",
-	)
-	if unmatched_customers.limit(1).count():
-		raise ValueError("Orders contains customer_id values missing from dim_customer")
-	if (
-		dim_customer.groupBy("customer_id")
-		.count()
-		.filter(F.col("count") > 1)
-		.limit(1)
-		.count()
-	):
-		raise ValueError("Duplicate customer_id values detected in dim_customer")
-	if (
-		dim_date.groupBy("date_value")
-		.count()
-		.filter(F.col("count") > 1)
-		.limit(1)
-		.count()
-	):
-		raise ValueError("Duplicate date_value values detected in dim_date")
+    orders = fact_orders.select("order_id", F.col(
+        "date_key").alias("order_date_key"))
+    fact = reviews.join(orders, "order_id", "left")
 
-	item_metrics = order_items.groupBy("order_id").agg(
-		F.count(F.lit(1)).cast("long").alias("item_count"),
-		F.round(F.sum(F.col("price").cast("double")), 2).alias("order_value"),
-	)
-	fact = (
-		orders.alias("orders")
-		.join(dim_customer.select("customer_id", "customer_key").alias("customer"),
-			  on="customer_id", how="inner")
-		.join(item_metrics, on="order_id", how="left")
-		.withColumn("item_count", F.coalesce(F.col("item_count"), F.lit(0)).cast("long"))
-		.withColumn("order_value", F.coalesce(F.col("order_value"), F.lit(0.0)))
-	)
+    if fact.filter(F.col("order_date_key").isNull()).limit(1).count() > 0:
+        raise ValueError(
+            "Review fact contains an order_id not present in fact_order")
 
-	for column, key_name in [
-		("order_purchase_timestamp", "purchase_date_key"),
-		("order_approved_at", "approval_date_key"),
-		("order_delivered_carrier_date", "carrier_date_key"),
-		("order_delivered_customer_date", "delivery_date_key"),
-		("order_estimated_delivery_date", "estimated_delivery_date_key"),
-	]:
-		date_lookup = dim_date.select(
-			F.col("date_value").alias(f"{key_name}_value"),
-			F.col("date_key").alias(key_name),
-		)
-		fact = fact.join(
-			date_lookup,
-			F.to_date(F.col(column)) == F.col(f"{key_name}_value"),
-			how="left",
-		).drop(f"{key_name}_value")
+    return fact.select(*FACT_COLUMNS)
 
-	if fact.count() != orders.count():
-		raise ValueError("Gold dimension joins changed the one-row-per-order grain")
-	for timestamp_column, key_column in [
-		("order_purchase_timestamp", "purchase_date_key"),
-		("order_approved_at", "approval_date_key"),
-		("order_delivered_carrier_date", "carrier_date_key"),
-		("order_delivered_customer_date", "delivery_date_key"),
-		("order_estimated_delivery_date", "estimated_delivery_date_key"),
-	]:
-		if fact.filter(
-			F.col(timestamp_column).isNotNull() & F.col(key_column).isNull()
-		).limit(1).count():
-			raise ValueError(f"Missing date dimension key for {timestamp_column}")
 
-	fact = clean_fact_orders_gold(fact)
-	from src.validation_fact_orders_gold import validate_fact_orders_gold
+def run_clean(spark) -> DataFrame:
+    reviews_df = spark.read.table("silver_order_reviews")
+    gold_df = build_fact_review_gold(
+        reviews_df, spark.read.table("gold_fact_order"))
 
-	validate_fact_orders_gold(fact)
-	return fact
+    gold_df.write.format("delta").mode(
+        "overwrite").saveAsTable("gold_fact_review")
+    print("Gold fact table 'gold_fact_review' created successfully.")
+    return gold_df
