@@ -15,7 +15,7 @@ import pyspark.sql.functions as F
 from pyspark.sql import DataFrame
 from pyspark.sql import Window
 
-from src.validation_dim_seller_gold import validate_dim_seller_gold
+from validation_dim_seller_gold import validate_dim_seller_gold
 
 
 def clean_dim_seller_gold(df: DataFrame) -> DataFrame:
