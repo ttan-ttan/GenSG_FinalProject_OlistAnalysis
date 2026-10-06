@@ -15,6 +15,8 @@ import pyspark.sql.functions as F
 from pyspark.sql import DataFrame
 from pyspark.sql import Window
 
+from src.validation_dim_seller_gold import validate_dim_seller_gold
+
 
 def clean_dim_seller_gold(df: DataFrame) -> DataFrame:
     """
@@ -40,17 +42,16 @@ def clean_dim_seller_gold(df: DataFrame) -> DataFrame:
     )
 
 
-def run_dim_seller_gold(spark) -> DataFrame:
-    """
-    Entry point for Gold Runner Notebook.
-    Reads Silver → applies Gold cleaning → writes Gold dimension table.
-    """
+def run_clean(spark):
+    """Run Gold seller dimension build."""
+    silver_df = spark.read.table("silver_sellers")
+    gold_df = clean_dim_seller_gold(silver_df)
+    gold_df = validate_dim_seller_gold(gold_df)
 
-    sellers_df = spark.read.table("silver_sellers")
-    gold_df = clean_dim_seller_gold(sellers_df)
-
-    gold_df.write.format("delta").mode("overwrite").option("overwriteSchema", "true") \
-        .saveAsTable("dbo.gold_dim_seller")
-
-    print("Gold dimension table 'dbo.gold_dim_seller' created successfully.")
+    gold_df.write.format("delta").mode(
+        "overwrite").saveAsTable("gold_dim_seller")
+    print("Gold dimension table 'gold_dim_seller' created successfully.")
     return gold_df
+
+
+clean_sellers_gold = clean_dim_seller_gold

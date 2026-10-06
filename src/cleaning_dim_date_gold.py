@@ -1,3 +1,5 @@
+# pylint: disable=no-member
+
 """
 cleaning_dim_date_gold
 Gold-layer build for the date dimension.
@@ -8,10 +10,11 @@ from pyspark.sql import DataFrame
 
 
 def build_dim_date_gold(orders: DataFrame) -> DataFrame:
+    """Build date dimension from silver_orders."""
     df = (
         orders.select(F.to_date("order_purchase_timestamp").alias("date"))
               .dropDuplicates()
-              .withColumn("date_key", F.date_format("date", "yyyyMMdd"))
+              .withColumn("date_key", F.date_format("date", "yyyyMMdd").cast("int"))
               .withColumn("year", F.year("date"))
               .withColumn("month", F.month("date"))
               .withColumn("day", F.dayofmonth("date"))
@@ -21,10 +24,15 @@ def build_dim_date_gold(orders: DataFrame) -> DataFrame:
 
 
 def run_clean(spark):
-    orders = spark.read.table("silver_orders")
+    """Run Gold date dimension build."""
+    orders = spark.read.table("dbo.silver_orders")
     gold_df = build_dim_date_gold(orders)
 
-    gold_df.write.format("delta").mode(
-        "overwrite").saveAsTable("gold_dim_date")
-    print("Gold dimension table 'gold_dim_date' created successfully.")
+    # Overwrite Gold table
+    gold_df.write.format("delta") \
+        .mode("overwrite") \
+        .option("overwriteSchema", "true") \
+        .saveAsTable("dbo.gold_dim_date")
+
+    print("Gold dimension table 'dbo.gold_dim_date' created successfully.")
     return gold_df

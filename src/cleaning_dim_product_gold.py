@@ -19,11 +19,13 @@ OUTPUT_COLUMNS = [
 
 
 def format_english(col_name: str):
+    """Format a column to English case."""
     text = F.trim(F.regexp_replace(F.lower(F.col(col_name)), r"[_\-\s]+", " "))
     return F.when(text == "", F.lit(None)).otherwise(text)
 
 
 def add_category_english(products: DataFrame, translation: DataFrame) -> DataFrame:
+    """Add English category name to products."""
     translation = (
         translation.select(
             "product_category_name",
@@ -36,6 +38,7 @@ def add_category_english(products: DataFrame, translation: DataFrame) -> DataFra
 
 
 def compute_baseline_price(items: DataFrame, orders: DataFrame) -> DataFrame:
+    """Compute the median price of each product outside of the event period."""
     valid_orders = (
         orders.filter(invert(F.col("order_status").isin(EXCLUDED_STATUSES)))
               .select("order_id", F.to_date("order_purchase_timestamp").alias("order_date"))
@@ -53,6 +56,7 @@ def compute_baseline_price(items: DataFrame, orders: DataFrame) -> DataFrame:
 
 
 def build_dim_product_gold(products, translation, items, orders):
+    """Build the product dimension for Gold layer."""
     baseline = compute_baseline_price(items, orders)
 
     dim = (
@@ -71,6 +75,7 @@ def build_dim_product_gold(products, translation, items, orders):
 
 
 def run_clean(spark):
+    """Run Gold product dimension build."""
     products = spark.read.table("silver_products")
     translation = spark.read.table("silver_product_category_name")
     items = spark.read.table("silver_order_items")

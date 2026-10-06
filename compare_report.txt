@@ -1,0 +1,311 @@
+=== Missing in Fabric (exists in VS Code but not in Fabric) ===
+.github/scripts/trigger_pipeline_FAILED.py
+.github/scripts/upload_src_folder_NOTUSING.py
+.github/scripts/upload_trigger_notebook.py
+.github/workflows/CI.yml
+.github/workflows/test_SUPERCEED.yml
+.github/workflows/trigger_pipeline_FAILED.yml
+.github/workflows/upload-src_NOTUSING.yml
+.gitignore
+NOTES.md
+README.md
+assets/Copilot_20260926_115738.png
+assets/Copilot_20260926_195737.png
+assets/ELT pipeline.png
+assets/git_fabric_integration.png
+data/README.md
+data/processed/___init__.py
+data/processed/cleaned_customers.parquet
+data/processed/cleaned_geolocation.parquet
+data/processed/cleaned_order_item.parquet
+data/raw/___init___.py
+data/raw/olist_customers_dataset.csv
+data/raw/olist_geolocation_dataset.csv
+data/raw/olist_order_items_dataset.csv
+data/raw/olist_order_payments_dataset.csv
+data/raw/olist_order_reviews_dataset.csv
+data/raw/olist_orders_dataset.csv
+data/raw/olist_products_dataset.csv
+data/raw/olist_sellers_dataset.csv
+data/raw/product_category_name_translation.csv
+generate.py
+notebooks/Bronze_Customers.notebook/notebook-content.json
+notebooks/Bronze_Geolocation.notebook/notebook-content.json
+notebooks/Bronze_OrderReviews.notebook/notebook-content.json
+notebooks/Bronze_Order_Items.notebook/notebook-content.json
+notebooks/Bronze_Orders.notebook/notebook-content.json
+notebooks/Bronze_Payments.notebook/notebook-content.json
+notebooks/Bronze_ProductCategoryName.notebook/notebook-content.json
+notebooks/Bronze_Products.notebook/notebook-content.json
+notebooks/Bronze_Sellers.notebook/notebook-content.json
+notebooks/Gold_DimCustomer.notebook/notebook-content.json
+notebooks/Gold_DimDate.notebook/notebook-content.json
+notebooks/Gold_DimProduct.notebook/notebook-content.json
+notebooks/Gold_DimSeller.notebook/notebook-content.json
+notebooks/Gold_FactOrder.notebook/notebook-content.json
+notebooks/Gold_FactOrderItem.notebook/notebook-content.json
+notebooks/Gold_FactReview.notebook/notebook-content.json
+notebooks/Silver_Customers.notebook/notebook-content.json
+notebooks/Silver_Geolocation.notebook/notebook-content.json
+notebooks/Silver_OrderReviews.notebook/notebook-content.json
+notebooks/Silver_Order_Items.notebook/notebook-content.json
+notebooks/Silver_Orders.notebook/notebook-content.json
+notebooks/Silver_Payments.notebook/notebook-content.json
+notebooks/Silver_ProductCategoryName.notebook/notebook-content.json
+notebooks/Silver_Products.notebook/notebook-content.json
+notebooks/Silver_Sellers.notebook/notebook-content.json
+notebooks/test_deploy.ipynb
+notebooks/trigger_pipeline.notebook/notebook-content.json
+pyproject.toml
+pytest.ini
+requirement.txt
+src/__init__.py
+tests/__init__.py
+tests/conftest.py
+tests/test_cleaning_customers.py
+tests/test_cleaning_dim_customer_gold.py
+tests/test_cleaning_dim_date_gold.py
+tests/test_cleaning_dim_product_gold.py
+tests/test_cleaning_dim_seller_gold.py
+tests/test_cleaning_fact_order_item_gold.py
+tests/test_cleaning_fact_orders_gold.py
+tests/test_cleaning_fact_review_gold.py
+tests/test_cleaning_geolocation.py
+tests/test_cleaning_order.py
+tests/test_cleaning_order_item.py
+tests/test_cleaning_order_payment.py
+tests/test_cleaning_order_reviews.py
+tests/test_cleaning_product_category.py
+tests/test_cleaning_products.py
+tests/test_cleaning_seller.py
+tests/test_cleaning_validate_product_category.py
+tests/test_validation_customers.py
+tests/test_validation_dim_customer_gold.py
+tests/test_validation_dim_date_gold.py
+tests/test_validation_dim_product_gold.py
+tests/test_validation_dim_seller_gold.py
+tests/test_validation_fact_order_item_gold.py
+tests/test_validation_fact_orders_gold.py
+tests/test_validation_fact_review_gold.py
+tests/test_validation_geolocation.py
+tests/test_validation_order_items.py
+tests/test_validation_orders.py
+tests/test_validation_payments.py
+tests/test_validation_products.py
+tests/test_validation_reviews.py
+tests/test_validation_sellers.py
+trigger.txt
+
+=== Extra in Fabric (exists in Fabric but not in VS Code) ===
+# Confirm contents currently visible to OS
+# Summary
+)
+- Command executed in 3 sec 669 ms by ttanttan on 05/10/2026, 10:24:30 am
+- Session ready in 10 sec 823 ms. Command executed in 22 sec 570 ms by ttanttan on 05/10/2026, 10:17:59 am
+.load("Files/")
+.option("recursiveFileLookup", "true")
+3 sec
+33 sec
+3456789101112
+97
+===== SYNC SUMMARY =====
+AI tools
+Add data items
+AutoSave: On
+Comments
+Connections
+Copilot
+Data Wrangler
+Data items
+Develop
+Edit
+Environment
+Execution failed for cell at position 2 with NameError: name 'input_file_name' is not definedExecution succeeded with no output for cell at position 2. {1}Kernel is now idle
+Explorer
+History
+Home
+Learn more
+Log
+No failures. All files synced successfully.
+Olist_Lakehouse
+OneLake
+Other people in your organization may have access to notebooks and Spark job definitions in this workspace. Carefully review this item before running it.
+PySpark (Python)
+Readme.txt
+Ready. Expires in 2 minutes.
+Resources
+Run
+Run all
+Selected Cell 2 of 2 cells
+Share
+Show less
+Spark jobs (1 of 1 succeeded)
+Standard session
+To move through the items use left and right arrow keys
+Updated (35 files):
+Upgrade to Runtime 2.0 today. Now GA and production-ready, Runtime 2.0 includes Spark 4.1 and Delta 4.2 with significant improvements in performance, stability, and security. Validate your workloads before it becomes default runtime in late September 2026.
+Verified directory contents: ['validation_fact_order_item_gold.py', 'validation_dim_customer_gold.py', 'validation_products.py', 'cleaning_dim_date_gold.py', 'cleaning_geolocation.py', 'cleaning_fact_order_item_gold.py', 'validation_sellers.py', 'validation_dim_seller_gold.py', 'cleaning_customers.py', 'validation_dim_product_gold.py', 'cleaning_fact_orders_gold.py', 'cleaning_validate_product_category.py', 'validation_geolocation.py', 'cleaning_dim_product_gold.py', 'cleaning_reviews.py', 'cleaning_dim_seller_gold.py', 'validation_order_items.py', 'cleaning_sellers.py', 'log_invalid_rows.py', 'cleaning_orders.py', 'log_row_count.py', 'cleaning_dim_customer_gold.py', 'validation_payments.py', 'cleaning_products.py', 'validation_reviews.py', 'validation_dim_date_gold.py', 'dq_summary.py', 'dq_logger.py', 'validation_customers.py', 'cleaning_order_items.py', 'cleaning_fact_review_gold.py', 'validation_orders.py', 'cleaning_order_payments.py', 'validation_fact_review_gold.py', 'validation_fact_orders_gold.py', '.cleaning_orders.py.crc', '.validate_orders.py.crc', '__init__.py', '__pycache__', 'cleaning_Validate_product_category.py', 'cleaning_customer_gold.py', 'cleaning_payments.py', 'log_rowcount.py', 'validate_orders.py', 'validation_customers_gold.py']
+View
+Workspace default
+[1]
+[5]
+[OK] cleaning_customers.py
+[OK] cleaning_dim_customer_gold.py
+[OK] cleaning_dim_date_gold.py
+[OK] cleaning_dim_product_gold.py
+[OK] cleaning_dim_seller_gold.py
+[OK] cleaning_fact_order_item_gold.py
+[OK] cleaning_fact_orders_gold.py
+[OK] cleaning_fact_review_gold.py
+[OK] cleaning_geolocation.py
+[OK] cleaning_order_items.py
+[OK] cleaning_order_payments.py
+[OK] cleaning_orders.py
+[OK] cleaning_products.py
+[OK] cleaning_reviews.py
+[OK] cleaning_sellers.py
+[OK] cleaning_validate_product_category.py
+[OK] dq_logger.py
+[OK] dq_summary.py
+[OK] log_invalid_rows.py
+[OK] log_row_count.py
+[OK] validation_customers.py
+[OK] validation_dim_customer_gold.py
+[OK] validation_dim_date_gold.py
+[OK] validation_dim_product_gold.py
+[OK] validation_dim_seller_gold.py
+[OK] validation_fact_order_item_gold.py
+[OK] validation_fact_orders_gold.py
+[OK] validation_fact_review_gold.py
+[OK] validation_geolocation.py
+[OK] validation_order_items.py
+[OK] validation_orders.py
+[OK] validation_payments.py
+[OK] validation_products.py
+[OK] validation_reviews.py
+[OK] validation_sellers.py
+d(f)
+df = (
+else:
+except Exception as e:
+export_all.zip
+export_all/bronze_customers.parquet/part-00000-fb782f98-ec4d-4db1-9d83-05425f973405-c000.snappy.parquet
+export_all/bronze_geolocation.parquet/part-00000-3d306de5-6ba6-48bf-a7f1-56277ba35919-c000.snappy.parquet
+export_all/bronze_geolocation.parquet/part-00002-3d306de5-6ba6-48bf-a7f1-56277ba35919-c000.snappy.parquet
+export_all/bronze_order_items.parquet/part-00000-7b4e1643-afd8-4a8f-845f-69f070fa98a1-c000.snappy.parquet
+export_all/bronze_orders.parquet/part-00000-e2956c45-cf24-4a16-8e4d-044ba158ca19-c000.snappy.parquet
+export_all/bronze_orders.parquet/part-00001-e2956c45-cf24-4a16-8e4d-044ba158ca19-c000.snappy.parquet
+export_all/bronze_payments.parquet/part-00000-0abe90b8-b0de-43ba-b9db-8e8f6a713646-c000.snappy.parquet
+export_all/bronze_products.parquet/part-00000-0611bbc2-5398-4488-a48a-6abaf278ebc5-c000.snappy.parquet
+export_all/bronze_reviews.parquet/part-00000-b77d524f-daa5-469e-8a21-bea851cae305-c000.snappy.parquet
+export_all/bronze_reviews.parquet/part-00001-b77d524f-daa5-469e-8a21-bea851cae305-c000.snappy.parquet
+export_all/bronze_sellers.parquet/part-00000-e8efe9bc-36e4-4937-ab61-ac11a782261f-c000.snappy.parquet
+export_all/dq_invalid_summary_logs.parquet/part-00000-f2324496-ba9b-4338-b68f-ccec9d564b07-c000.snappy.parquet
+export_all/dq_invalid_summary_logs.parquet/part-00001-f2324496-ba9b-4338-b68f-ccec9d564b07-c000.snappy.parquet
+export_all/dq_invalid_summary_logs.parquet/part-00002-f2324496-ba9b-4338-b68f-ccec9d564b07-c000.snappy.parquet
+export_all/dq_invalid_summary_logs.parquet/part-00003-f2324496-ba9b-4338-b68f-ccec9d564b07-c000.snappy.parquet
+export_all/dq_invalid_summary_logs.parquet/part-00004-f2324496-ba9b-4338-b68f-ccec9d564b07-c000.snappy.parquet
+export_all/dq_invalid_summary_logs.parquet/part-00005-f2324496-ba9b-4338-b68f-ccec9d564b07-c000.snappy.parquet
+export_all/dq_logs_customers.parquet/part-00000-35ed12da-2707-4533-9341-aab519820a76-c000.snappy.parquet
+export_all/dq_logs_customers.parquet/part-00001-35ed12da-2707-4533-9341-aab519820a76-c000.snappy.parquet
+export_all/dq_logs_customers.parquet/part-00002-35ed12da-2707-4533-9341-aab519820a76-c000.snappy.parquet
+export_all/dq_logs_customers.parquet/part-00003-35ed12da-2707-4533-9341-aab519820a76-c000.snappy.parquet
+export_all/dq_logs_customers.parquet/part-00004-35ed12da-2707-4533-9341-aab519820a76-c000.snappy.parquet
+export_all/dq_logs_customers.parquet/part-00005-35ed12da-2707-4533-9341-aab519820a76-c000.snappy.parquet
+export_all/dq_logs_customers.parquet/part-00006-35ed12da-2707-4533-9341-aab519820a76-c000.snappy.parquet
+export_all/dq_logs_customers.parquet/part-00007-35ed12da-2707-4533-9341-aab519820a76-c000.snappy.parquet
+export_all/dq_rowcount_logs.parquet/part-00000-57578e34-71c7-4d96-8524-96d20a3144cb-c000.snappy.parquet
+export_all/dq_rowcount_logs.parquet/part-00001-57578e34-71c7-4d96-8524-96d20a3144cb-c000.snappy.parquet
+export_all/dq_rowcount_logs.parquet/part-00002-57578e34-71c7-4d96-8524-96d20a3144cb-c000.snappy.parquet
+export_all/dq_rowcount_logs.parquet/part-00003-57578e34-71c7-4d96-8524-96d20a3144cb-c000.snappy.parquet
+export_all/dq_rowcount_logs.parquet/part-00004-57578e34-71c7-4d96-8524-96d20a3144cb-c000.snappy.parquet
+export_all/dq_rowcount_logs.parquet/part-00005-57578e34-71c7-4d96-8524-96d20a3144cb-c000.snappy.parquet
+export_all/dq_rowcount_logs.parquet/part-00006-57578e34-71c7-4d96-8524-96d20a3144cb-c000.snappy.parquet
+export_all/dq_summary.parquet/part-00000-0169c7f7-c494-48ce-b24e-64b80e3a89d4-c000.snappy.parquet
+export_all/gold_dim_customers.parquet/part-00000-e9b08570-1d6d-416c-bdab-5ec988d7c1cf-c000.snappy.parquet
+export_all/gold_dim_date.parquet/part-00000-756b3b10-5862-4691-8377-b39980850d39-c000.snappy.parquet
+export_all/gold_dim_product.parquet/part-00000-ba720afb-5047-4bb8-b7c0-f80c11345d3f-c000.snappy.parquet
+export_all/gold_dim_sellers.parquet/part-00000-e59eef9d-276c-40da-8617-a8f5b9c6ac98-c000.snappy.parquet
+export_all/gold_fact_order.parquet/part-00000-5cf59749-91fb-40a7-a5a7-b7e81a663980-c000.snappy.parquet
+export_all/gold_fact_order.parquet/part-00001-5cf59749-91fb-40a7-a5a7-b7e81a663980-c000.snappy.parquet
+export_all/gold_fact_order.parquet/part-00002-5cf59749-91fb-40a7-a5a7-b7e81a663980-c000.snappy.parquet
+export_all/gold_fact_order.parquet/part-00003-5cf59749-91fb-40a7-a5a7-b7e81a663980-c000.snappy.parquet
+export_all/gold_fact_order.parquet/part-00004-5cf59749-91fb-40a7-a5a7-b7e81a663980-c000.snappy.parquet
+export_all/gold_fact_order.parquet/part-00005-5cf59749-91fb-40a7-a5a7-b7e81a663980-c000.snappy.parquet
+export_all/gold_fact_order.parquet/part-00006-5cf59749-91fb-40a7-a5a7-b7e81a663980-c000.snappy.parquet
+export_all/gold_fact_order.parquet/part-00007-5cf59749-91fb-40a7-a5a7-b7e81a663980-c000.snappy.parquet
+export_all/gold_fact_order_item.parquet/part-00000-8ff1e1e4-8436-4cde-8f6e-39b40a36de0d-c000.snappy.parquet
+export_all/gold_fact_order_item.parquet/part-00001-8ff1e1e4-8436-4cde-8f6e-39b40a36de0d-c000.snappy.parquet
+export_all/gold_fact_review.parquet/part-00000-58615a60-dffa-459c-a5b3-dcb2eb175dff-c000.snappy.parquet
+export_all/gold_fact_review.parquet/part-00001-58615a60-dffa-459c-a5b3-dcb2eb175dff-c000.snappy.parquet
+export_all/gold_fact_review.parquet/part-00002-58615a60-dffa-459c-a5b3-dcb2eb175dff-c000.snappy.parquet
+export_all/gold_fact_review.parquet/part-00003-58615a60-dffa-459c-a5b3-dcb2eb175dff-c000.snappy.parquet
+export_all/gold_fact_review.parquet/part-00004-58615a60-dffa-459c-a5b3-dcb2eb175dff-c000.snappy.parquet
+export_all/gold_fact_review.parquet/part-00005-58615a60-dffa-459c-a5b3-dcb2eb175dff-c000.snappy.parquet
+export_all/gold_fact_review.parquet/part-00006-58615a60-dffa-459c-a5b3-dcb2eb175dff-c000.snappy.parquet
+export_all/gold_fact_review.parquet/part-00007-58615a60-dffa-459c-a5b3-dcb2eb175dff-c000.snappy.parquet
+export_all/order_payments.parquet/part-00000-b99cd11b-b389-41cd-af2f-e34e9153bf28-c000.snappy.parquet
+export_all/order_payments.parquet/part-00001-b99cd11b-b389-41cd-af2f-e34e9153bf28-c000.snappy.parquet
+export_all/silver_customers.parquet/part-00000-dcf6bbc0-603e-42a9-a2bc-5210843b2b59-c000.snappy.parquet
+export_all/silver_geolocation.parquet/part-00000-e83aa1b8-216d-4751-a27f-4a8f51d6686a-c000.snappy.parquet
+export_all/silver_geolocation.parquet/part-00002-e83aa1b8-216d-4751-a27f-4a8f51d6686a-c000.snappy.parquet
+export_all/silver_order_items.parquet/part-00000-61f790c9-422f-4800-b577-e59e66b7f2a7-c000.snappy.parquet
+export_all/silver_orders.parquet/part-00000-46650838-9eed-4c9c-8be4-166c3841324e-c000.snappy.parquet
+export_all/silver_orders.parquet/part-00001-46650838-9eed-4c9c-8be4-166c3841324e-c000.snappy.parquet
+export_all/silver_payments.parquet/part-00000-0a5797c2-db48-4442-afd6-30116ddbf3ee-c000.snappy.parquet
+export_all/silver_product_category.parquet/part-00000-848713de-649f-43a4-b7f2-f3e1a2de7d40-c000.snappy.parquet
+export_all/silver_products.parquet/part-00000-9a792e35-52e8-4c5d-a73a-12be770ffb91-c000.snappy.parquet
+export_all/silver_reviews.parquet/part-00000-418604f8-f7a7-4eac-b88e-bd3646462fec-c000.snappy.parquet
+export_all/silver_reviews.parquet/part-00001-418604f8-f7a7-4eac-b88e-bd3646462fec-c000.snappy.parquet
+export_all/silver_sellers.parquet/part-00000-191facaf-fb48-41ce-a6d0-6573a649533f-c000.snappy.parquet
+export_all_download.zip
+failed.append((f, "Downloaded file is empty (0 bytes)"))
+failed.append((f, str(e)))
+files = df.select(input_file_name()).rdd.map(lambda r: r[0]).collect()
+for f in files:
+for f in updated:
+for f, err in failed:
+from pyspark.sql.functions import input_file_name
+if failed:
+olist_customers_dataset.csv
+olist_geolocation_dataset.csv
+olist_order_items_dataset.csv
+olist_order_payments_dataset.csv
+olist_order_reviews_dataset.csv
+olist_orders_dataset.csv
+olist_products_dataset.csv
+olist_sellers_dataset.csv
+print("  [FAIL]", f, "→", err)
+print("  [OK]", f)
+print("===== SYNC SUMMARY =====")
+print("\nFailed to update:")
+print("\nNo failures. All files synced successfully.")
+print("\nVerified directory contents:", os.listdir(lakehouse_path))
+print(f"Target Directory: {lakehouse_path}")
+print(f"Updated ({len(updated)} files):")
+print(f)
+product_category_name_translation.csv
+raw_data/olist_customers_dataset.csv
+raw_data/olist_geolocation_dataset.csv
+raw_data/olist_order_items_dataset.csv
+raw_data/olist_order_payments_dataset.csv
+raw_data/olist_order_reviews_dataset.csv
+raw_data/olist_orders_dataset.csv
+raw_data/olist_products_dataset.csv
+raw_data/olist_sellers_dataset.csv
+raw_data/product_category_name_translation.csv
+spark.read.format("binaryFile")
+src
+src/cleaning_Validate_product_category.py
+src/cleaning_customer_gold.py
+src/log_rowcount.py
+src/validate_orders.py
+src/validation_customers_gold.py
+
+
+
+=== Summary ===
+VS Code files: 131
+Fabric files: 241
+Missing in Fabric: 96
+Extra in Fabric: 206

@@ -34,7 +34,10 @@ def standardise_reviews(df: DataFrame) -> DataFrame:
         "review_comment_message",
     ]:
         df = df.withColumn(c, F.trim(F.col(c)))
-        df = df.withColumn(c, F.when(F.col(c) == "", None).otherwise(F.col(c)))
+        df = df.withColumn(
+            c,
+            F.when(F.col(c) == F.lit(""), F.lit(None)).otherwise(F.col(c)),
+        )
 
     # Replace line breaks inside comments with a single space (keeps one review per row)
     for c in ["review_comment_title", "review_comment_message"]:
@@ -45,11 +48,11 @@ def standardise_reviews(df: DataFrame) -> DataFrame:
         df.withColumn("review_score", F.col("review_score").cast("int"))
         .withColumn(
             "review_creation_date",
-            F.to_timestamp(F.col("review_creation_date"), TS_FORMAT),
+            F.try_to_timestamp(F.col("review_creation_date"), F.lit(TS_FORMAT)),
         )
         .withColumn(
             "review_answer_timestamp",
-            F.to_timestamp(F.col("review_answer_timestamp"), TS_FORMAT),
+            F.try_to_timestamp(F.col("review_answer_timestamp"), F.lit(TS_FORMAT)),
         )
     )
 

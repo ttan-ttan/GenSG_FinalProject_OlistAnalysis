@@ -1,0 +1,334 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Home
+
+Edit
+
+AI tools
+
+Run
+
+View
+
+Comments
+
+History
+
+Develop
+
+Share
+To move through the items use left and right arrow keys
+
+
+
+
+
+Run all
+
+
+Standard session
+
+
+PySpark (Python)
+Environment
+
+Workspace default
+
+Data Wrangler
+
+
+
+
+Copilot
+Explorer
+
+
+Data items
+
+Resources
+
+Connections
+
+Add data items
+
+OneLake
+Olist_Lakehouse
+Other people in your organization may have access to notebooks and Spark job definitions in this workspace. Carefully review this item before running it.
+Upgrade to Runtime 2.0 today. Now GA and production-ready, Runtime 2.0 includes Spark 4.1 and Delta 4.2 with significant improvements in performance, stability, and security. Validate your workloads before it becomes default runtime in late September 2026. 
+Learn more
+[1]
+d(f)
+        else:
+            failed.append((f, "Downloaded file is empty (0 bytes)"))
+
+    except Exception as e:
+        failed.append((f, str(e)))
+
+# Summary
+print("===== SYNC SUMMARY =====")
+print(f"Target Directory: {lakehouse_path}")
+print(f"Updated ({len(updated)} files):")
+for f in updated:
+    print("  [OK]", f)
+
+if failed:
+    print("\nFailed to update:")
+    for f, err in failed:
+        print("  [FAIL]", f, "→", err)
+else:
+    print("\nNo failures. All files synced successfully.")
+
+# Confirm contents currently visible to OS
+print("\nVerified directory contents:", os.listdir(lakehouse_path))
+97
+33 sec
+ - Session ready in 10 sec 823 ms. Command executed in 22 sec 570 ms by ttanttan on 05/10/2026, 10:17:59 am
+
+
+Log
+===== SYNC SUMMARY =====
+Target Directory: /lakehouse/default/Files/src
+Updated (35 files):
+  [OK] cleaning_customers.py
+  [OK] cleaning_orders.py
+  [OK] cleaning_order_items.py
+  [OK] cleaning_products.py
+  [OK] cleaning_sellers.py
+  [OK] cleaning_geolocation.py
+  [OK] cleaning_order_payments.py
+  [OK] cleaning_reviews.py
+  [OK] cleaning_validate_product_category.py
+  [OK] cleaning_dim_customer_gold.py
+  [OK] cleaning_dim_date_gold.py
+  [OK] cleaning_dim_product_gold.py
+  [OK] cleaning_dim_seller_gold.py
+  [OK] cleaning_fact_orders_gold.py
+  [OK] cleaning_fact_order_item_gold.py
+  [OK] cleaning_fact_review_gold.py
+  [OK] validation_customers.py
+  [OK] validation_orders.py
+  [OK] validation_order_items.py
+  [OK] validation_products.py
+  [OK] validation_sellers.py
+  [OK] validation_geolocation.py
+  [OK] validation_payments.py
+  [OK] validation_reviews.py
+  [OK] validation_dim_customer_gold.py
+  [OK] validation_dim_date_gold.py
+  [OK] validation_dim_product_gold.py
+  [OK] validation_dim_seller_gold.py
+  [OK] validation_fact_orders_gold.py
+  [OK] validation_fact_order_item_gold.py
+  [OK] validation_fact_review_gold.py
+  [OK] log_row_count.py
+  [OK] log_invalid_rows.py
+  [OK] dq_summary.py
+  [OK] dq_logger.py
+
+No failures. All files synced successfully.
+
+Verified directory contents: ['validation_fact_order_item_gold.py', 'validation_dim_customer_gold.py', 'validation_products.py', 'cleaning_dim_date_gold.py', 'cleaning_geolocation.py', 'cleaning_fact_order_item_gold.py', 'validation_sellers.py', 'validation_dim_seller_gold.py', 'cleaning_customers.py', 'validation_dim_product_gold.py', 'cleaning_fact_orders_gold.py', 'cleaning_validate_product_category.py', 'validation_geolocation.py', 'cleaning_dim_product_gold.py', 'cleaning_reviews.py', 'cleaning_dim_seller_gold.py', 'validation_order_items.py', 'cleaning_sellers.py', 'log_invalid_rows.py', 'cleaning_orders.py', 'log_row_count.py', 'cleaning_dim_customer_gold.py', 'validation_payments.py', 'cleaning_products.py', 'validation_reviews.py', 'validation_dim_date_gold.py', 'dq_summary.py', 'dq_logger.py', 'validation_customers.py', 'cleaning_order_items.py', 'cleaning_fact_review_gold.py', 'validation_orders.py', 'cleaning_order_payments.py', 'validation_fact_review_gold.py', 'validation_fact_orders_gold.py', '.cleaning_orders.py.crc', '.validate_orders.py.crc', '__init__.py', '__pycache__', 'cleaning_Validate_product_category.py', 'cleaning_customer_gold.py', 'cleaning_payments.py', 'log_rowcount.py', 'validate_orders.py', 'validation_customers_gold.py']
+
+
+[5]
+from pyspark.sql.functions import input_file_name
+
+df = (
+    spark.read.format("binaryFile")
+    .option("recursiveFileLookup", "true")
+    .load("Files/")
+)
+
+files = df.select(input_file_name()).rdd.map(lambda r: r[0]).collect()
+for f in files:
+    print(f)
+
+3456789101112
+3 sec
+ - Command executed in 3 sec 669 ms by ttanttan on 05/10/2026, 10:24:30 am
+
+
+Spark jobs (1 of 1 succeeded)
+
+Resources
+
+Log
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/olist_geolocation_dataset.csv
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/raw_data/olist_geolocation_dataset.csv
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/olist_orders_dataset.csv
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/raw_data/olist_orders_dataset.csv
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/bronze_geolocation.parquet/part-00002-3d306de5-6ba6-48bf-a7f1-56277ba35919-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/silver_geolocation.parquet/part-00002-e83aa1b8-216d-4751-a27f-4a8f51d6686a-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/olist_order_items_dataset.csv
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/raw_data/olist_order_items_dataset.csv
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/olist_order_reviews_dataset.csv
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/raw_data/olist_order_reviews_dataset.csv
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/bronze_orders.parquet/part-00001-e2956c45-cf24-4a16-8e4d-044ba158ca19-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/silver_orders.parquet/part-00001-46650838-9eed-4c9c-8be4-166c3841324e-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/bronze_reviews.parquet/part-00001-b77d524f-daa5-469e-8a21-bea851cae305-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/silver_reviews.parquet/part-00001-418604f8-f7a7-4eac-b88e-bd3646462fec-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/olist_customers_dataset.csv
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/raw_data/olist_customers_dataset.csv
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/bronze_customers.parquet/part-00000-fb782f98-ec4d-4db1-9d83-05425f973405-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/silver_customers.parquet/part-00000-dcf6bbc0-603e-42a9-a2bc-5210843b2b59-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/bronze_order_items.parquet/part-00000-7b4e1643-afd8-4a8f-845f-69f070fa98a1-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/silver_order_items.parquet/part-00000-61f790c9-422f-4800-b577-e59e66b7f2a7-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/olist_order_payments_dataset.csv
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/raw_data/olist_order_payments_dataset.csv
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_logs_customers.parquet/part-00001-35ed12da-2707-4533-9341-aab519820a76-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_dim_customers.parquet/part-00000-e9b08570-1d6d-416c-bdab-5ec988d7c1cf-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/bronze_payments.parquet/part-00000-0abe90b8-b0de-43ba-b9db-8e8f6a713646-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/silver_payments.parquet/part-00000-0a5797c2-db48-4442-afd6-30116ddbf3ee-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/order_payments.parquet/part-00000-b99cd11b-b389-41cd-af2f-e34e9153bf28-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_fact_order_item.parquet/part-00000-8ff1e1e4-8436-4cde-8f6e-39b40a36de0d-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_fact_order_item.parquet/part-00001-8ff1e1e4-8436-4cde-8f6e-39b40a36de0d-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/olist_products_dataset.csv
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/raw_data/olist_products_dataset.csv
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_logs_customers.parquet/part-00002-35ed12da-2707-4533-9341-aab519820a76-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_logs_customers.parquet/part-00000-35ed12da-2707-4533-9341-aab519820a76-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_dim_product.parquet/part-00000-ba720afb-5047-4bb8-b7c0-f80c11345d3f-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/bronze_products.parquet/part-00000-0611bbc2-5398-4488-a48a-6abaf278ebc5-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/silver_products.parquet/part-00000-9a792e35-52e8-4c5d-a73a-12be770ffb91-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/order_payments.parquet/part-00001-b99cd11b-b389-41cd-af2f-e34e9153bf28-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_fact_review.parquet/part-00000-58615a60-dffa-459c-a5b3-dcb2eb175dff-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_fact_review.parquet/part-00001-58615a60-dffa-459c-a5b3-dcb2eb175dff-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_fact_review.parquet/part-00002-58615a60-dffa-459c-a5b3-dcb2eb175dff-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_fact_review.parquet/part-00003-58615a60-dffa-459c-a5b3-dcb2eb175dff-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_fact_review.parquet/part-00004-58615a60-dffa-459c-a5b3-dcb2eb175dff-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_fact_review.parquet/part-00005-58615a60-dffa-459c-a5b3-dcb2eb175dff-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_fact_review.parquet/part-00006-58615a60-dffa-459c-a5b3-dcb2eb175dff-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_fact_review.parquet/part-00007-58615a60-dffa-459c-a5b3-dcb2eb175dff-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_fact_order.parquet/part-00000-5cf59749-91fb-40a7-a5a7-b7e81a663980-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_fact_order.parquet/part-00001-5cf59749-91fb-40a7-a5a7-b7e81a663980-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_fact_order.parquet/part-00002-5cf59749-91fb-40a7-a5a7-b7e81a663980-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_fact_order.parquet/part-00003-5cf59749-91fb-40a7-a5a7-b7e81a663980-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_fact_order.parquet/part-00004-5cf59749-91fb-40a7-a5a7-b7e81a663980-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_fact_order.parquet/part-00005-5cf59749-91fb-40a7-a5a7-b7e81a663980-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_fact_order.parquet/part-00006-5cf59749-91fb-40a7-a5a7-b7e81a663980-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_fact_order.parquet/part-00007-5cf59749-91fb-40a7-a5a7-b7e81a663980-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_logs_customers.parquet/part-00003-35ed12da-2707-4533-9341-aab519820a76-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/olist_sellers_dataset.csv
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/raw_data/olist_sellers_dataset.csv
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_dim_sellers.parquet/part-00000-e59eef9d-276c-40da-8617-a8f5b9c6ac98-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/bronze_sellers.parquet/part-00000-e8efe9bc-36e4-4937-ab61-ac11a782261f-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/silver_sellers.parquet/part-00000-191facaf-fb48-41ce-a6d0-6573a649533f-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_logs_customers.parquet/part-00004-35ed12da-2707-4533-9341-aab519820a76-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_logs_customers.parquet/part-00005-35ed12da-2707-4533-9341-aab519820a76-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_logs_customers.parquet/part-00006-35ed12da-2707-4533-9341-aab519820a76-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_logs_customers.parquet/part-00007-35ed12da-2707-4533-9341-aab519820a76-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/gold_dim_date.parquet/part-00000-756b3b10-5862-4691-8377-b39980850d39-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/validation_payments.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/cleaning_order_payments.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/cleaning_fact_orders_gold.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/validation_reviews.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/cleaning_reviews.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/cleaning_fact_order_item_gold.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/cleaning_fact_review_gold.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/validation_dim_product_gold.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/cleaning_products.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/silver_product_category.parquet/part-00000-848713de-649f-43a4-b7f2-f3e1a2de7d40-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/cleaning_validate_product_category.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_summary.parquet/part-00000-0169c7f7-c494-48ce-b24e-64b80e3a89d4-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/cleaning_dim_product_gold.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/cleaning_dim_date_gold.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/validation_products.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/validation_orders.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/cleaning_dim_customer_gold.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/validation_order_items.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/validation_fact_order_item_gold.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/product_category_name_translation.csv
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/raw_data/product_category_name_translation.csv
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/validation_dim_date_gold.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_rowcount_logs.parquet/part-00006-57578e34-71c7-4d96-8524-96d20a3144cb-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_rowcount_logs.parquet/part-00003-57578e34-71c7-4d96-8524-96d20a3144cb-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/validation_dim_customer_gold.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_rowcount_logs.parquet/part-00005-57578e34-71c7-4d96-8524-96d20a3144cb-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_rowcount_logs.parquet/part-00000-57578e34-71c7-4d96-8524-96d20a3144cb-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_rowcount_logs.parquet/part-00001-57578e34-71c7-4d96-8524-96d20a3144cb-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_rowcount_logs.parquet/part-00002-57578e34-71c7-4d96-8524-96d20a3144cb-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_rowcount_logs.parquet/part-00004-57578e34-71c7-4d96-8524-96d20a3144cb-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/dq_summary.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/dq_logger.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/validation_dim_seller_gold.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/validation_fact_orders_gold.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/validation_customers.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/cleaning_order_items.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_invalid_summary_logs.parquet/part-00000-f2324496-ba9b-4338-b68f-ccec9d564b07-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_invalid_summary_logs.parquet/part-00001-f2324496-ba9b-4338-b68f-ccec9d564b07-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_invalid_summary_logs.parquet/part-00002-f2324496-ba9b-4338-b68f-ccec9d564b07-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_invalid_summary_logs.parquet/part-00003-f2324496-ba9b-4338-b68f-ccec9d564b07-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_invalid_summary_logs.parquet/part-00004-f2324496-ba9b-4338-b68f-ccec9d564b07-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/dq_invalid_summary_logs.parquet/part-00005-f2324496-ba9b-4338-b68f-ccec9d564b07-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/validation_sellers.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/Readme.txt
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/validation_customers_gold.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/validation_fact_review_gold.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/cleaning_dim_seller_gold.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/cleaning_orders.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/cleaning_Validate_product_category.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/cleaning_customers.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/log_invalid_rows.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/bronze_orders.parquet/part-00000-e2956c45-cf24-4a16-8e4d-044ba158ca19-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/silver_orders.parquet/part-00000-46650838-9eed-4c9c-8be4-166c3841324e-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/cleaning_sellers.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/bronze_reviews.parquet/part-00000-b77d524f-daa5-469e-8a21-bea851cae305-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/silver_reviews.parquet/part-00000-418604f8-f7a7-4eac-b88e-bd3646462fec-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/cleaning_customer_gold.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/bronze_geolocation.parquet/part-00000-3d306de5-6ba6-48bf-a7f1-56277ba35919-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all/silver_geolocation.parquet/part-00000-e83aa1b8-216d-4751-a27f-4a8f51d6686a-c000.snappy.parquet
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/log_row_count.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/log_rowcount.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/validate_orders.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all.zip
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/export_all_download.zip
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/cleaning_geolocation.py
+abfss://db31b021-c604-4f46-bef0-f45f32f8b60e@onelake.dfs.fabric.microsoft.com/0556f300-c541-4f1b-813e-425ef297b4db/Files/src/validation_geolocation.py
+Show less
+
+Ready. Expires in 2 minutes.
+
+
+AutoSave: On
+
+Selected Cell 2 of 2 cells
+Execution failed for cell at position 2 with NameError: name 'input_file_name' is not definedExecution succeeded with no output for cell at position 2. {1}Kernel is now idle
